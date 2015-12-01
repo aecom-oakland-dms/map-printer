@@ -1,5 +1,6 @@
-// var phantom = require('phantomjs')
-var phantom = require('node-phantom')
+'use strict';
+// let phantom = require('phantomjs')
+let phantom = require('node-phantom')
 , tmp = require('tmp')
 , url
 , outfile
@@ -9,16 +10,16 @@ var phantom = require('node-phantom')
 tmp.setGracefulCleanup();
 
 function setPageSize(page, pageSize, pageOrientation, ph){
-    // var pageSize = "A4"
-    // var pageOrientation = "landscape",
-    var temp
-        // , dpi = 300
-        , dpi = 150 //from experimenting with different combinations of viewportSize and paperSize the pixels per inch comes out to be 150
-        , cmToInchFactor = 0.393701 
-        , widthInInches
-        , heightInInches
-        , accessnote = 'Accessed at:' + new Date().toLocaleDateString() + ' - ' + new Date().toLocaleTimeString()
-        , margin = '1cm'
+    // let pageSize = "A4"
+    // let pageOrientation = "landscape",
+    let temp
+    // , dpi = 300
+    , dpi = 150 //from experimenting with different combinations of viewportSize and paperSize the pixels per inch comes out to be 150
+    , cmToInchFactor = 0.393701 
+    , widthInInches
+    , heightInInches
+    , accessnote = 'Accessed at:' + new Date().toLocaleDateString() + ' - ' + new Date().toLocaleTimeString()
+    , margin = '1cm'
     ;
 
     switch(pageSize){
@@ -112,12 +113,12 @@ function setPageSize(page, pageSize, pageOrientation, ph){
 }
 
 
-var filetype = '.pdf';
-// var filetype = '.png';
-// var filetype = '.jpg';
+let filetype = '.pdf';
+// let filetype = '.png';
+// let filetype = '.jpg';
 function openPageAtUrl(page, ph, url, options, callback){
-    // var pageinfo = setPageSize(page, 'Tabloid', 'Landscape', ph);
-    var pageinfo = setPageSize(page, 'Letter', 'Landscape', ph);
+    // let pageinfo = setPageSize(page, 'Tabloid', 'Landscape', ph);
+    let pageinfo = setPageSize(page, 'Letter', 'Landscape', ph);
     pageinfo.pageOptions = options;
 
     console.log(url);
@@ -141,7 +142,7 @@ function onPageOpen(page, ph, pageinfo, url, callback){
     page.evaluate( 
         function(pageinfo){ 
             /* run javascript on webpage */
-            var size = pageinfo.pageSize
+            let size = pageinfo.pageSize
             , filetype = pageinfo.filetype
             , pageOptions = pageinfo.pageOptions
             ;
@@ -185,7 +186,7 @@ function onPageOpen(page, ph, pageinfo, url, callback){
             // does this slow it down and allow eveything to load?
             function wait(){
                 console.time('waiter');
-                [].map.call( $('body').html(), function(x, index) { var a = new Object(); a[index] =  x.charCodeAt(0); return a})
+                [].map.call( $('body').html(), function(x, index) { let a = new Object(); a[index] =  x.charCodeAt(0); return a})
                     .sort()
                     .slice(0)
                     .sort()
@@ -194,12 +195,12 @@ function onPageOpen(page, ph, pageinfo, url, callback){
 
             // $('.label').css('font-size', '+=2px');
 
-            Q.fapply(
-                function(){ resize() }
-            ).then(
+            // Q.fapply(
+            //     function(){ resize() }
+            // ).then(
                 Q.fapply(
                    function(){ wait() }
-                )
+                // )
             ).then(
                 // Q.fapply(
                 //     function(){ zoomToLayer(activeTerminal) }
@@ -214,9 +215,9 @@ function onPageOpen(page, ph, pageinfo, url, callback){
                     //     $( '#map' ).height( $('#map').height()-10 )
                 }
             )
-            .then(
-                function(){ positionLabels('label') }
-            )
+            // .then(
+            //     // function(){ positionLabels('label') }
+            // )
 
             return {
                 title: document.title
@@ -263,7 +264,7 @@ function onPageOpen(page, ph, pageinfo, url, callback){
             if(err){
                 throw new Error(err)
             }
-            var title = args.title
+            let title = args.title
             , footer = args.footer
             , name = createFileName(title,url)
             ;
@@ -306,7 +307,7 @@ function createPDF(page, ph, outfile, callback){
 }
 
 function createFileName(title, url){
-  var name = title || url.split('/').pop();
+  let name = title || url.split('/').pop();
   // ['(',')','\\', '/'].forEach(function(item){
   ['\\', '/'].forEach(function(item){
     name = name.replace(item, '-');
@@ -329,9 +330,10 @@ function makeMap(url, options, callback){
           openPageAtUrl(page, ph, url, options, callback)
         });
       }, {
-        dnodeOpts: {
-          weak: false
-        }
+        // for Windows -->
+        // dnodeOpts: {
+        //   weak: false
+        // }
       });
     }catch(err){
         console.log('phantom error with', url, 'error:', err);
