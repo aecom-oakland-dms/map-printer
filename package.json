@@ -1,0 +1,29 @@
+{
+  "name": "map-printer",
+  "version": "1.0.0",
+  "description": "save a map webpage as a png/pdf... using node-phantom",
+  "main": "map-printer.js",
+  "scripts": {
+    "test": "npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aecom-oakland-dms/map-printer.git"
+  },
+  "keywords": [
+    "map",
+    "phantom",
+    "node",
+    "print"
+  ],
+  "author": "Ben Kane",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/aecom-oakland-dms/map-printer/issues"
+  },
+  "homepage": "https://github.com/aecom-oakland-dms/map-printer#readme",
+  "dependencies": {
+    "node-phantom": "^0.2.5",
+    "tmp": "0.0.28"
+  }
+}
