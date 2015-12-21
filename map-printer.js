@@ -1,25 +1,41 @@
 'use strict';
 // let phantom = require('phantomjs')
-let phantom = require('node-phantom')
+let phantom = require('phantom')
+, EventEmitter = require('events')
+, util = require('util')
+// let phantom = require('node-phantom')
 , tmp = require('tmp')
 , url
 , outfile
 ; 
 
+
+function Queue() {
+  // Initialize necessary properties from `EventEmitter` in this instance
+  EventEmitter.call(this);
+}
+
+// Inherit functions from `EventEmitter`'s prototype
+util.inherits(Queue, EventEmitter);
+Queue.prototype.list = [];
+
 // cleanup the temporary files even when an uncaught exception occurs.
-tmp.setGracefulCleanup();
+// tmp.setGracefulCleanup();
 
 function setPageSize(page, pageSize, pageOrientation, ph){
     // let pageSize = "A4"
     // let pageOrientation = "landscape",
     let temp
-    // , dpi = 300
-    , dpi = 150 //from experimenting with different combinations of viewportSize and paperSize the pixels per inch comes out to be 150
+    , dpi = 300
+    // , dpi = 150 //from experimenting with different combinations of viewportSize and paperSize the pixels per inch comes out to be 150
     , cmToInchFactor = 0.393701 
     , widthInInches
     , heightInInches
     , accessnote = 'Accessed at:' + new Date().toLocaleDateString() + ' - ' + new Date().toLocaleTimeString()
     , margin = '1cm'
+    , viewportWidth
+    , viewportHeight
+    , viewportSize
     ;
 
     switch(pageSize){
@@ -74,7 +90,7 @@ function setPageSize(page, pageSize, pageOrientation, ph){
         viewportHeight = temp
     }
 
-    //calculate corresponding viewport dimension in pixels
+    // calculate corresponding viewport dimension in pixels
     if(filetype !== '.pdf'){
         viewportWidth = dpi*widthInInches;
         viewportHeight = dpi*heightInInches;
@@ -104,7 +120,9 @@ function setPageSize(page, pageSize, pageOrientation, ph){
     // page.set('zoomFactor',  100.0/72.0); // osx
 
     return { 
-        filetype : filetype
+        orientation: pageOrientation.toLowerCase()
+        , sizeFormat: pageSize
+        , filetype : filetype
         , pageSize : {
             width: viewportWidth
             , height: viewportHeight
@@ -113,20 +131,27 @@ function setPageSize(page, pageSize, pageOrientation, ph){
 }
 
 
-let filetype = '.pdf';
+// let filetype = '.pdf';
 // let filetype = '.png';
-// let filetype = '.jpg';
+let filetype = '.jpg';
 function openPageAtUrl(page, ph, url, options, callback){
-    // let pageinfo = setPageSize(page, 'Tabloid', 'Landscape', ph);
-    let pageinfo = setPageSize(page, 'Letter', 'Landscape', ph);
-    pageinfo.pageOptions = options;
+    console.log('opening page at:', url);
+    let orientation = 'Landscape';
+    // let orientation = 'Portrait';
 
-    console.log(url);
-    page.open( url, function(err, status){
-         if(err){
-            throw new Error(err)
-            setTimeout(function(){ph.exit()}, 0)
-         }
+    // let pageinfo = setPageSize(page, 'Tabloid', orientation, ph);
+    let pageinfo = setPageSize(page, 'Letter', orientation, ph);
+
+    pageinfo.pageOptions = options;
+    
+    // node-phantom callback returns err and status args
+    // page.open( url, function(err, status){
+         // if(err){
+            // throw new Error(err)
+            // setTimeout(function(){ph.exit()}, 0)
+         // }
+    // phantom callback returns only status arg
+    page.open( url, function(status){
          if (status !== 'success') {
             console.log('Unable to access network', status);
             setTimeout(function(){ph.exit()}, 0)
@@ -141,88 +166,108 @@ function openPageAtUrl(page, ph, url, options, callback){
 function onPageOpen(page, ph, pageinfo, url, callback){
     page.evaluate( 
         function(pageinfo){ 
+            'use strict';
+            window.phantom = true;
+
+            console.log('running javascript on page via phantom', 'window.phantom?', window.phantom);
+
+            // add phantom class to styles in phantom-mods.css are applied
+            $('html')
+                .addClass('phantom')
+                .addClass(pageinfo.orientation || '')
+            ;
+            
+            pageinfo = pageinfo || {};
+            // console.log(pageinfo, arguments);
             /* run javascript on webpage */
-            let size = pageinfo.pageSize
-            , filetype = pageinfo.filetype
-            , pageOptions = pageinfo.pageOptions
+            var size = pageinfo.pageSize || {}
+            , filetype = pageinfo.filetype || ''
+            , pageOptions = pageinfo.pageOptions || {}
             ;
             
             // add the pageinfo
-            $('footer').append(
-                "<table width='100%'>" + 
-                  "<tr><td class='pull-left'><small> " + (pageOptions.accessnote || '') + "</small></td>" +
-                  "<td>&nbsp;</td> <td>&nbsp;</td>" +
-                  "<td colspan='2' style='text-align: right;'><small>" + pageOptions.pageNum + " / " + pageOptions.numPages + "</small></td></tr>" +
-                  "</table>"
-            );
+            // $('footer').append(
+            //     "<table width='100%'>" + 
+            //       "<tr><td class='pull-left'><small> " + (pageOptions.accessnote || '') + "</small></td>" +
+            //       "<td>&nbsp;</td> <td>&nbsp;</td>" +
+            //       "<td colspan='2' style='text-align: right;'><small>" + pageOptions.pageNum + " / " + pageOptions.numPages + "</small></td></tr>" +
+            //       "</table>"
+            // );
 
-            // add phantom class to styles in phantom-mods.css are applied
-            $('html').addClass('phantom');
 
+            // [$(window), $('html'), $('body')].forEach(function(whb){
+            //         whb.height(777)
+            //         .width(947)
+            // })
             // adjustments for pdf output
-            if(filetype==='.pdf'){
-                [$(window), $('html'), $('body')].forEach(function(whb){
-                    if(size.width){   
-                        whb.width(size.width)
-                            .css('width', size.width)
-                            // .css('width', size.width*4)
-                    }
-                    else{
-                        whb.width(900)
-                    }
+            // if(filetype==='.pdf'){
+            //     [$(window), $('html'), $('body')].forEach(function(whb){
+            //         if(size.width){   
+            //             whb.width(size.width)
+            //                 .css('width', size.width)
+            //                 // .css('width', size.width*4)
+            //         }
+            //         else{
+            //             whb.width(900)
+            //         }
 
-                    if(size.height)
-                        whb.height(size.height)
-                            .css('height', size.height)
-                            // .css('height', size.height+100)
-                    else
-                        whb.height( 800 )
-                })
-            }
+            //         if(size.height)
+            //             whb.height(size.height)
+            //                 .css('height', size.height)
+            //                 // .css('height', size.height+100)
+            //         else
+            //             whb.height( 800 )
+            //     })
+            // }
              
             // remove all href's because they aren't necessary and they render sometimes in the PDF output
-            $('a').attr('href', null)
+            $('a').attr('href', null);
+
+            // $('.leaflet-control-zoom').hide();
             
-            // does this slow it down and allow eveything to load?
-            function wait(){
-                console.time('waiter');
-                [].map.call( $('body').html(), function(x, index) { let a = new Object(); a[index] =  x.charCodeAt(0); return a})
-                    .sort()
-                    .slice(0)
-                    .sort()
-                return console.timeEnd('waiter')
-            }
+            // // does this slow it down and allow eveything to load?
+            // function wait(cb){
+            //     return new Promise(function(resolve, reject){
+            //         console.time('waiter');
+            //         [].map.call( $('body').html(), function(x, index) { var a = new Object(); a[index] =  x.charCodeAt(0); return a})
+            //             .sort()
+            //             .slice(0)
+            //             .sort()
+            //         console.timeEnd('waiter')
+            //         if(cb instanceof Function){
+            //             var next = cb();
+            //             if(next.then)
+            //                 next.then(function(){ resolve(true) })
+            //             else
+            //                 resolve(true)
+            //         }else
+            //             resolve(true);
+            //     })
+            // }
 
-            // $('.label').css('font-size', '+=2px');
+            $('.markerLabel')
+                // .removeClass('trans')
+                .css('font-size', '+=15px');
 
-            // Q.fapply(
-            //     function(){ resize() }
-            // ).then(
-                Q.fapply(
-                   function(){ wait() }
-                // )
-            ).then(
-                // Q.fapply(
-                //     function(){ zoomToLayer(activeTerminal) }
-                // )
-            )
-            .then(
-                function(){ 
-                    wait()
-                    // if(name==='nutter')
-                    //     map.setZoom( map.getZoom() + 1 )
-                    // if(name==='ports ameria')
-                    //     $( '#map' ).height( $('#map').height()-10 )
-                }
-            )
-            // .then(
-            //     // function(){ positionLabels('label') }
-            // )
+            // hide legend items for layer's that aren't visible
+            // $('.layer-toggle:not(:checked)').closest('.legendGroup').hide()
+            // $('.legendGroup[class*=" disabled-"]').hide()
 
+            // var mapcontainer = $(app.map.getContainer());
+            console.log('DONE RUNNING JAVASCRIPT ON PHANTOMJS PAGE');
             return {
                 title: document.title
-                , footer: $('footer').html()
-                , filetype: filetype
+                // , footer: $('footer').html()
+                // , center: app.map.getCenter()
+                // , zoom: app.map.getZoom()
+                // , size: size
+                // , map: {
+                //     width: mapcontainer.width()
+                //     , height: mapcontainer.height()
+                // }
+                // 
+                // , svgImage: $('svg.legendImage').first()//[0].outerHTML
+                // , filetype: filetype
                 // ,  mapinfo: {
                 //     width: $('#map').width()
                 //     , height:  $('#map').height()
@@ -259,16 +304,21 @@ function onPageOpen(page, ph, pageinfo, url, callback){
             }
         }
         // callback after page.evaluate finished
-        , function onEvaluated(err, args){
+        // , function onEvaluated(err, args){
             // console.log('onEvaluated', err, args);
-            if(err){
-                throw new Error(err)
-            }
+            // if(err){
+            //     throw new Error(err)
+            // }
+        , function onEvaluated(args){
+            // console.log('onEvaluated args:', arguments);
+            args = args || { title: 'test-title'};
+            
             let title = args.title
-            , footer = args.footer
+            // , footer = args.footer
             , name = createFileName(title,url)
             ;
             
+            console.log('Creating', name);
             // console.log('Creating', title, args.filetype);
             
             // console.log('MAPINFO', args.mapinfo);
@@ -276,8 +326,13 @@ function onPageOpen(page, ph, pageinfo, url, callback){
             // console.log('BODYINFO', args.bodyinfo);
             // console.log('WINDOWINFO', args.windowinfo);
             // console.log('FOOTERINFO', args.footerinfo);
-
-            createPDF(page, ph, name, callback);
+            // console.log('resourceQueue', pageinfo.pageOptions.resourceQueue);
+            pageinfo.pageOptions.resourceQueue.then(
+                function(){
+                    console.log('resourceQueue is empty');
+                    createPDF(page, ph, name, callback);
+                }    
+            )
         } 
         // pass arguments into page evaluate
         , pageinfo
@@ -287,6 +342,7 @@ function onPageOpen(page, ph, pageinfo, url, callback){
 function createPDF(page, ph, outfile, callback){
     // hacky stupid way to wait for it to load
     setTimeout(function(){
+        console.log('creating temp file with prefix:', outfile, 'postfix:', filetype);
         tmp.file({ prefix: outfile, postfix: filetype, keep: true }, function _tempFileCreated(err, filepath, fd, cleanupCallback) {
           if (err) return console.error(err)//throw err;
           
@@ -303,37 +359,139 @@ function createPDF(page, ph, outfile, callback){
               ph.exit();
           }, 3000)
         });
-    }, 2000)
+    }, 3000)
 }
 
 function createFileName(title, url){
   let name = title || url.split('/').pop();
-  // ['(',')','\\', '/'].forEach(function(item){
-  ['\\', '/'].forEach(function(item){
-    name = name.replace(item, '-');
-  })
+  name = name.replace(/\\|\/|\./ig, '-');
   return name
 }
 
+function onPhantomError(msg, trace) {
+  var msgStack = ['PHANTOM ERROR: ' + msg];
+  if (trace && trace.length) {
+    msgStack.push('TRACE:');
+    trace.forEach(function(t) {
+      msgStack.push(' -> ' + (t.file || t.sourceURL) + ': ' + t.line + (t.function ? ' (in function ' + t.function +')' : ''));
+    });
+  }
+  console.error(msgStack.join('\n'));
+  phantom.exit(1);
+}
+
 function makeMap(url, options, callback){
-    // console.log(url);
+    console.log('url passed to map-printer.makeMap:', url);
     try{
-      phantom.create(function (err, ph) {
-        ph.createPage(function (err, page) {
-          /* the page actions */
+      phantom.onError = onPhantomError;
+
+      phantom.create(function (ph) {
+      // phantom.create(function (err, ph) {
+        // if(err)
+            // console.error('there was en error:', err)
+        // else
+        // console.log('successfully created phantom page...');
+        // ph.createPage(function (err, page) {
+        ph.createPage(function (page) {
+            let requests = new Queue()
+            , timelimit = 5000
+            , resourceQueue = new Promise((resolve, reject)=>{
+                let timer;
+
+                function checkqueue(){
+                    process.stdout.write(`${requests.list.length} requests remaining in phantomjs page. \r`)
+                    timer && clearTimeout(timer);
+                    timer = setTimeout(()=>{
+                        if(!requests.resolved){
+                            if(requests.list.length==0){
+                                console.log('requests done');
+                                requests.removeAllListeners('close')
+                                requests.resolve = resolve( true );
+                            }
+                        }
+                    },3000);
+                };
+
+                requests
+                    .on('open', url=>{
+                        requests.list.push(url);
+                        // console.log('phantomjs page opened request at:', url)
+                        // set a time limit for requests of 3 seconds
+                        // let timer = setTimeout(function(){requests.emit('close', url, true) }, timelimit);
+                        // requests.once('close', urlclosed=>{
+                        //     if(urlclosed==url){
+                        //         console.log('urlclosed', urlclosed, 'matches url?', urlclosed===url)
+                        //         clearTimeout(timer);
+                        //     }
+                        // })
+                    })
+                    .on('close', (url, force)=>{
+                        // if(force)
+                        //     console.log(`FORCE: ${force} - forcibly removing url from queue because it took more than ${timelimit/1000} seconds to load: ${url}`)
+                        requests.list.splice(requests.list.indexOf(url), 1);
+                        if(requests.list.length<3)
+                            process.stdout.write(`requests remaining: ${requests.list.join(' , ')} \r`)
+                        checkqueue();
+                    })
+            });
+
+            options.resourceQueue = resourceQueue;
+
+            /* the page actions */
             page.onError = function (msg, trace) {
-                console.log(msg);
+                console.error(msg);
                 trace && trace.forEach(function(item) {
                     console.log('  ', item.file, ':', item.line);
                 });
             };
-          openPageAtUrl(page, ph, url, options, callback)
+
+            page.set('onResourceRequested', function (req) {
+                requests.emit('open', req.url)
+                // console.log("Resource requested..", arguments)
+            });
+
+            page.set('onResourceReceived', function (res) {
+                if (res.stage == 'end') {
+                    requests.emit('close', res.url)
+                    // console.log("Resource received!")
+                }
+                // console.log('onResourseReceived', arguments);
+            });
+
+            page.set('onConsoleMessage', function (msg) { 
+                // extension to make sure circular references
+                // don't throw error
+                // `phantom stdout: TypeError: JSON.stringify cannot serialize cyclic structures`
+                (function() {
+                  var originalStringify = JSON.stringify;
+                  JSON.stringify = function(obj) {
+                    var seen = [];
+                    var result = originalStringify(obj, function(key, val) {
+                      // if (val instanceof HTMLElement) { return val.outerHTML }
+                      if (typeof val == "object") {
+                        if (seen.indexOf(val) >= 0) { return "[Circular]"; }
+                        seen.push(val);
+                      }
+                      return val;
+                    });
+                    return result;
+                  };
+                })();
+                console.log('webpage console message:', msg, arguments);
+            });
+
+            // page.onConsoleMessage = function(msg, lineNum, sourceId) {
+            //   console.log('CONSOLE: ' + msg + ' (from line #' + lineNum + ' in "' + sourceId + '")');
+            // };
+            // 
+
+            openPageAtUrl(page, ph, url, options, callback)
         });
       }, {
         // for Windows -->
-        // dnodeOpts: {
-        //   weak: false
-        // }
+        dnodeOpts: {
+          weak: false
+        }
       });
     }catch(err){
         console.log('phantom error with', url, 'error:', err);

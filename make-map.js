@@ -1,20 +1,19 @@
 'use strict';
-let mapmaker = require('../lib/phantom-mapmaker')
-, rmdir = require('../lib/rmdir')
-, defaultList = require('../public/js/terminal-getter').defaultList
+let mapmaker = require('./map-printer')
+, rmdir = require('node-rmdir')
 , events = require('events')
 , mime = require('mime')
 , path = require('path')
 , fs = require('fs')
 , tmp = require('tmp')
-, gm = require('gm')
+// , gm = require('gm')
 , Q = require('q')
 , pdfDocument = require('pdfkit')
 , exec = require('child_process').exec
 ;
 
-function makeMap(terminal, options, oncomplete){
-  let url = 'http://localhost:3000/responder-maps/' + terminal;
+function makeMap(url, options, oncomplete){
+  // let url = 'http://localhost:3000/responder-maps/' + view;
   console.log('sending %s to mapmaker', url);
   mapmaker.makeMap(url, options, oncomplete);
 }
@@ -68,13 +67,18 @@ function mapcomplete(res, data){
          .on('close', cleanup.bind('close'))
          .on('error', cleanup.bind('error'))
 
-
+      console.log('streaming:', path.resolve(filepath))
       let filestream = fs.createReadStream( path.resolve(filepath) );
+      try{
+        filestream
+          .on('end', function(){
+            res.end && res.end()
+          })
+          .pipe(res, {end: false})
+      }catch(err){
+        console.error(err, 'with filestream')
+      }
       return filestream
-        .on('end', function(){
-          res.end && res.end()
-        })
-        .pipe(res, {end: false})
 
   }catch(err){
     console.log(err);
@@ -97,11 +101,12 @@ Queue.prototype = {
   __proto__ : events.EventEmitter.prototype
   , results : []
   , functions : []
+  , pageorder: {}
 };
 
-exports.getMaps = function(req, res){
-   let terminal = req.params.terminal || req.query.terminal;
-   let terminals = terminal ? [terminal] : Object.keys(defaultList).sort();
+module.exports.getMaps = function(req, res){
+   let view = req.params ? req.params.view || req.query.view : 'www.google.com';
+   let views = view ? [view] : undefined;
 
    let queue = new Queue();
     queue.on('change', function(){
@@ -109,40 +114,41 @@ exports.getMaps = function(req, res){
       next && next() || queue.removeAllListeners('change');
     })
 
-  queue.functions = [];
-  queue.results = [];
-  queue.pageorder = {};
+  // queue.functions = [];
+  // queue.results = [];
+  // queue.pageorder = {};
   
    let concurrent = 0
    , done
    , accessnote = 'Accessed: ' + new Date().toLocaleDateString() + ' - ' + new Date().toLocaleTimeString()
    ;
     
-   terminals.forEach(function(terminal, index){
+   views.forEach(function(view, index){
       let func = function(){
-          if(done || queue.results.length === terminals.length){
+          if(done || queue.results.length === views.length){
             done = true;
             queue.removeAllListeners('change');
           }
 
           let options = {
             accessnote : accessnote
-            , pageNum : terminals.length > 1 ? index+1 : 1
-            , numPages : terminals.length > 1 ? terminals.length +1 : 1 
+            , pageNum : views.length > 1 ? index+1 : 1
+            , numPages : views.length > 1 ? views.length +1 : 1 
           }
 
           concurrent +=1;
-          console.log('concurrent renderers:', concurrent, 'now starting terminal: ', terminal)
-          return makeMap(terminal, options, function(data){
+          console.log('concurrent renderers:', concurrent, 'now starting view: ', view)
+          return makeMap(view, options, function(data){
             queue.results.push( data );
             queue.emit('change')
             queue.pageorder[options.pageNum] = data;
             concurrent -= 1;
             // console.log('concurrent renderers:', concurrent);
-            if(queue.results.length === terminals.length || concurrent===0){
+            if(queue.results.length === views.length || concurrent===0){
               done = true;
               let ordered = correctOrder( queue.pageorder )
-              ordered.unshift( terminals.length === 1 ? terminal : 'Responder Maps' )
+              ordered.unshift( view )
+              // ordered.unshift( views.length === 1 ? view : 'Responder Maps' )
               return makePDF(ordered, res, mapcomplete);
             }
           });
@@ -174,20 +180,23 @@ function correctOrder(ordermap){
 function makePDF(data, res, callback){
   // let jpgs = []
   let pdfName = data.shift() + '.pdf'
+  , author = '{AUTHOR}'
+  , date = new Date().toLocaleString()
   , pdf = new pdfDocument(
   {
     layout : 'landscape'
     , Title: pdfName
     , title: pdfName
-    , Author: 'Port of Oakland'
-    , author: 'Port of Oakland'
-    , CreationDate: new Date().toLocaleString()
-    , creationDate: new Date().toLocaleString()
+    , Author: author
+    , author: author
+    , CreationDate: date
+    , creationDate: date
   }
   )
   ;
 
-  tmp.dir({prefix: 'responder-maps' }, function _tempDirCreated(err, tempdir) {
+  // tmp.dir({}, function _tempDirCreated(err, tempdir) {
+  tmp.dir({prefix: 'map-print' }, function _tempDirCreated(err, tempdir) {
     if (err) throw err;
    
     // console.log("Dir: ", tempdir);
@@ -249,7 +258,7 @@ function addPageFooter(pdf, pageNum, numPages, accessnote) {
   //   "<td>&nbsp;</td> <td>&nbsp;</td>" +
   //   "<td colspan='2' style='text-align: right;'><small>" + pageNum + " / " + numPages + "</small></td></tr>" +
   //   "</table>";
-    // "<tr><td colspan='1' style='text-align: center;'><small>PORT OF OAKLAND  |  gis.support@portloakland.com</small></td></tr>" +
+    // "<tr><td colspan='1' style='text-align: center;'><small>ORGANIZATION  |  contact@organization.com</small></td></tr>" +
 }
 
 function readyToSend(tempdir, pdfpath, pdfName, deletes, callback, res){
@@ -284,12 +293,11 @@ function deleteDir(dir){
 
 function mergePDFs(pdfs, outfilepath, callback){
   // add other pdfs to the mapbook - eg. cover sheet, etc
-  pdfs.unshift('"\\\\jls-file/DATA/Shared/Wharf/Responder Maps/maritime.map.pdf"');
-  // pdfs.unshift('"S:/Shared/Wharf/Responder Maps/maritime.map.pdf"');
+  // pdfs.unshift('"/user/coversheet.pdf"');
   
-  let cmd = 'gs -dNOPAUSE -sDEVICE=pdfwrite\
-   -sOUTPUTFILE="' + outfilepath + '"\
-   -dBATCH ' + pdfs.join(' ')
+  let cmd = 'gs -dNOPAUSE -sDEVICE=pdfwrite'
+  + ' -sOUTPUTFILE="' + outfilepath + '"'
+  + ' -dBATCH ' + pdfs.join(' ')
   ;
   console.log(cmd, pdfs.join(' '));
 
