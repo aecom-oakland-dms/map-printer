@@ -155,8 +155,8 @@ function openPageAtUrl(page, url, options, callback){
     options.bodyheight = options.height;
     options.bodywidth = options.width;
 
-    console.log('page options')
-    console.dir(options)
+    // console.log('page options')
+    // console.dir(options)
     
     // node-phantom callback returns err and status args
     // phantom callback returns only status arg
@@ -177,6 +177,7 @@ function onPageOpen(page, options, url, callback){
     page.evaluate( 
         function(options){ 
             'use strict';
+            /* run javascript on webpage */
             window.phantom = true;
             options = options || {};
 
@@ -188,10 +189,8 @@ function onPageOpen(page, options, url, callback){
                 // .addClass(options.orientation || '')
             ;
             
-            /* run javascript on webpage */
             var size = options.pageSize || {}
             , filetype = options.filetype || ''
-            // , pageOptions = options.pageOptions || {}
             ;
             
             // add the pageinfo
@@ -212,7 +211,6 @@ function onPageOpen(page, options, url, callback){
             console.log('size:', JSON.stringify(size));
             console.log('height:', height);
             console.log('width:', width);
-            
 
             [window, 'html, body'].forEach(function(name){
                 var whb = $(name).css({
@@ -230,14 +228,28 @@ function onPageOpen(page, options, url, callback){
             // remove all href's because they aren't necessary and they render sometimes in the PDF output
             $('a').attr('href', null);
 
-            $('.markerLabel')
-                .removeClass('trans')
+            $('.markerLabel').removeClass('trans')
             //     .css('font-size', '+=15px');
 
             // hide legend items for layer's that aren't visible
             // $('.legendGroup .layer-toggle:not(:checked)').parent().hide()
             // $('.layer-toggle:not(:checked)').closest('.legendGroup').hide()
             // $('.legendGroup[class*=" disabled-"]').hide()
+             
+            var printmessage = 'PAGE READY FOR PRINTING';
+            // send it after 10 seconds
+            let timer = setTimeout(t=>{
+                $(app).trigger('print');
+                console.log(printmessage)
+            }, 10 * 1000);
+
+            // or when the map is finished loading layerconfigs
+            app.map.on('layerconfigs:loaded', evt=>{
+                // hide/remove non-active layers from the print output
+                $(app).trigger('print');
+                clearTimeout(timer);
+                console.log(printmessage)
+            });
 
             console.log('DONE RUNNING JAVASCRIPT ON PHANTOMJS PAGE');
             return {
@@ -254,9 +266,7 @@ function onPageOpen(page, options, url, callback){
             ;
             
             console.log('Creating', name);
-            // console.log('Creating', title, args.filetype);
             options.resourceQueue.then(
-            // pageinfo.pageOptions.resourceQueue.then(
                 function(){
                     createPDF(page, {filetype: options.filetype, outfile:name }, callback);
                 }    
@@ -268,9 +278,8 @@ function onPageOpen(page, options, url, callback){
 }
 
 function createPDF(page, options, callback){
-// function createPDF(page, ph, outfile, callback){
     // hacky stupid way to wait for it to load
-    setTimeout(function(){
+    // setTimeout(function(){
         console.log('creating temp file with prefix:', options.outfile, 'postfix:', options.filetype);
         tmp.file({ prefix: options.outfile, postfix: options.filetype, keep: true }, function _tempFileCreated(err, filepath, fd, cleanupCallback) {
           if (err) return console.error(err)//throw err;
@@ -286,11 +295,9 @@ function createPDF(page, options, callback){
                   cleanupCallback();
               
               // ph.exit();
-          }, 1500)
-          // }, 3000)
+          }, 500)
         });
-    }, 1500)
-    // }, 3000)
+    // }, 1500)
 }
 
 function createFileName(title, url){
@@ -322,7 +329,7 @@ function loadPhantom(cb){
         dnodeOpts: {
           weak: false
         }
-      })
+    })
     // ;);
     return phantom
 }
@@ -346,31 +353,20 @@ function makeMap(url, options, callback){
                 timer && clearTimeout(timer);
                 timer = setTimeout(()=>{
                     if(!requests.resolved){
-                        if(requests.list.length==0){
-                            console.log('requests done');
+                        if(requests.list.length==0 && requests.printmessageReceived){
+                            console.log('requests done and printmessage received');
                             requests.removeAllListeners('close')
                             requests.resolve = resolve( true );
                         }
                     }
-                },3000);
+                }, 1000);
             };
 
             requests
                 .on('open', url=>{
                     requests.list.push(url);
-                    // console.log('phantomjs page opened request at:', url)
-                    // set a time limit for requests of 3 seconds
-                    // let timer = setTimeout(function(){requests.emit('close', url, true) }, timelimit);
-                    // requests.once('close', urlclosed=>{
-                    //     if(urlclosed==url){
-                    //         console.log('urlclosed', urlclosed, 'matches url?', urlclosed===url)
-                    //         clearTimeout(timer);
-                    //     }
-                    // })
                 })
                 .on('close', (url, force)=>{
-                    // if(force)
-                    //     console.log(`FORCE: ${force} - forcibly removing url from queue because it took more than ${timelimit/1000} seconds to load: ${url}`)
                     requests.list.splice(requests.list.indexOf(url), 1);
                     if(requests.list.length<3)
                         process.stdout.write(`requests remaining: ${requests.list.join(' , ')} \r`)
@@ -398,7 +394,12 @@ function makeMap(url, options, callback){
             }
         });
 
-        page.set('onConsoleMessage', function (msg) { 
+        page.set('onConsoleMessage', function (msg) {
+            if(msg == 'PAGE READY FOR PRINTING'){
+                requests.printmessageReceived = true;
+                requests.emit('close', msg);
+            }
+
             console.log('webpage console message:', msg, arguments);
         });
 
