@@ -23,7 +23,8 @@ Queue.prototype.list = [];
 // cleanup the temporary files even when an uncaught exception occurs.
 // tmp.setGracefulCleanup();
 
-function setPageSize(page, options={}){
+function setPageSize(page, options){
+    options = options || {};
 // function setPageSize(page, pageSize, pageOrientation, ph){
     // let pageSize = "A4"
     // let pageOrientation = "landscape",
