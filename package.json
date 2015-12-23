@@ -27,7 +27,7 @@
     "mime": "^1.3.4",
     "node-rmdir": "git+https://github.com/bkane11/node-rmdir.git",
     "pdfkit": "^0.7.1",
-    "phantom": "^0.8.4",
+    "phantom": "git+https://github.com/bkane11/phantomjs-node.git",
     "q": "^1.4.1",
     "tmp": "0.0.28"
   }
