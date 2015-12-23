@@ -239,13 +239,13 @@ function onPageOpen(page, options, url, callback){
              
             var printmessage = 'PAGE READY FOR PRINTING';
             // send it after 10 seconds
-            let timer = setTimeout(t=>{
+            var timer = setTimeout(function(){
                 $(app).trigger('print');
                 console.log(printmessage)
             }, 10 * 1000);
 
             // or when the map is finished loading layerconfigs
-            app.map.on('layerconfigs:loaded', evt=>{
+            app.map.on('layerconfigs:loaded', function(){
                 // hide/remove non-active layers from the print output
                 $(app).trigger('print');
                 clearTimeout(timer);
@@ -295,6 +295,9 @@ function createPDF(page, options, callback){
               }else
                   cleanupCallback();
               
+              // close the page after 3 seconds
+              setTimeout(t=>page.close(), 3000);
+
               // ph.exit();
           }, 500)
         });
@@ -379,7 +382,7 @@ function makeMap(url, options, callback){
 
         /* the page actions */
         page.onError = function (msg, trace) {
-            console.error(msg);
+            console.error('\n', 'page.onError:', msg, '\n');
             trace && trace.forEach(function(item) {
                 console.log('  ', item.file, ':', item.line);
             });
@@ -401,7 +404,7 @@ function makeMap(url, options, callback){
                 requests.emit('close', msg);
             }
 
-            console.log('webpage console message:', msg, arguments);
+            console.log('\n', 'webpage console message:', msg, arguments, '\n');
         });
 
         openPageAtUrl(page, url, options, callback)

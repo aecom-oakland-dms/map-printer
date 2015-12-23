@@ -139,7 +139,7 @@ Queue.prototype = {
 };
 
 module.exports.getMaps = function(req, res){
-  let query = req.query;
+  let query = req.query || {};
   let view = req.params ? req.params.view || query.view : 'www.google.com';
   let views = view ? [view] : undefined
   , viewname = views.join('---');
@@ -281,8 +281,8 @@ function makePDF(data, res, callback){
   }else{
     // send the pdf and break out of the loop if this is the only pdf
     Q.fapply( ()=>{
-      console.log('callback is:')
-      console.dir(callback);
+      // console.log('callback is:')
+      // console.dir(callback);
       callback.call(this, res, data[0])
       // mapcomplete.call(this, res, data[0])
     }).then(function(){
