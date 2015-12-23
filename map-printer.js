@@ -280,7 +280,7 @@ function onPageOpen(page, options, url, callback){
 
 function createPDF(page, options, callback){
     // hacky stupid way to wait for it to load
-    // setTimeout(function(){
+    setTimeout(function(){
         console.log('creating temp file with prefix:', options.outfile, 'postfix:', options.filetype);
         tmp.file({ prefix: options.outfile, postfix: options.filetype, keep: true }, function _tempFileCreated(err, filepath, fd, cleanupCallback) {
           if (err) return console.error(err)//throw err;
@@ -301,7 +301,7 @@ function createPDF(page, options, callback){
               // ph.exit();
           }, 500)
         });
-    // }, 1500)
+    }, 1500)
 }
 
 function createFileName(title, url){
@@ -404,7 +404,7 @@ function makeMap(url, options, callback){
                 requests.emit('close', msg);
             }
 
-            console.log('\n', 'webpage console message:', msg, arguments, '\n');
+            console.log('webpage console message:', msg, arguments);
         });
 
         openPageAtUrl(page, url, options, callback)
