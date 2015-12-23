@@ -24,6 +24,7 @@
   },
   "homepage": "https://github.com/aecom-oakland-dms/map-printer#readme",
   "dependencies": {
+    "coffee": "^2.1.0",
     "mime": "^1.3.4",
     "node-rmdir": "git+https://github.com/bkane11/node-rmdir.git",
     "pdfkit": "^0.7.1",
