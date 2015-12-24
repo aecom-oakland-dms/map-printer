@@ -238,11 +238,11 @@ function onPageOpen(page, options, url, callback){
             // $('.legendGroup[class*=" disabled-"]').hide()
              
             var printmessage = 'PAGE READY FOR PRINTING';
-            // send it after 10 seconds
+            // send it after 30 seconds
             var timer = setTimeout(function(){
                 $(app).trigger('print');
                 console.log(printmessage)
-            }, 10 * 1000);
+            }, 30 * 1000);
 
             // or when the map is finished loading layerconfigs
             app.map.on('layerconfigs:loaded', function(){
