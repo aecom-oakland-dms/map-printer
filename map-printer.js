@@ -139,7 +139,6 @@ function setPageSize(page, options){
     }
 }
 
-
 // let filetype = '.pdf';
 // let filetype = '.png';
 // let filetype = '.jpg';
@@ -155,9 +154,6 @@ function openPageAtUrl(page, url, options, callback){
 
     options.bodyheight = options.height;
     options.bodywidth = options.width;
-
-    // console.log('page options')
-    // console.dir(options)
     
     // node-phantom callback returns err and status args
     // phantom callback returns only status arg
@@ -359,7 +355,9 @@ function makeMap(url, options, callback){
                     if(!requests.resolved){
                         if(requests.printmessageReceived){
                         // if(requests.list.length==0 && requests.printmessageReceived){
-                            console.log('requests done and printmessage received');
+                            console.log('\nrequests remaining', requests.list.join('\n\t * '), '\n')
+                            console.log('printmessage received');
+                            // console.log('requests done and printmessage received');
                             requests.removeAllListeners('close')
                             requests.resolve = resolve( true );
                         }
