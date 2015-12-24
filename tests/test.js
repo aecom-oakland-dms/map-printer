@@ -1,5 +1,6 @@
 'use strict';
 let mapmaker = require(process.cwd()+ '/' + 'make-map')
+, timermsg = 'test map-printer'
 , req = {
   params: {
     // { 
@@ -25,16 +26,18 @@ let mapmaker = require(process.cwd()+ '/' + 'make-map')
 }
 , res = {
   // 'node-test': true,
+  emit: function(){console.log('res.emit', arguments); return this},
   send: function(){console.log('res.send:', arguments); return this},
   cookie: function(){console.log('res.cookie:', arguments); return this},
   on: function(){console.log('res.on:', arguments); return this},
   once: function(){console.log('res.once:', arguments); return this},
   write: function(){ return this }, //console.log('res.write:', [].slice.call(arguments).map(arg=>typeof arg)); return this},
   // write: function(){ console.log('res.write:', [].slice.call(arguments).map(arg=>typeof arg)); return this},
-  end: function(){console.log('res.end:', arguments); process.exit(); return this},
+  end: function(){console.log('res.end:', arguments); console.timeEnd(timermsg); process.exit(); return this},
   setHeader: function(){console.log('res.setHeader:', arguments); return this},
   removeListener: function(){console.log('res.removeListener:', arguments); return this}
 }
 ;
 
-mapmaker.getMaps(req, res)
+console.time(timermsg);
+mapmaker.getMaps(req, res);

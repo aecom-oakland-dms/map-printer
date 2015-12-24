@@ -155,12 +155,13 @@ function openPageAtUrl(page, url, options, callback){
     options.bodyheight = options.height;
     options.bodywidth = options.width;
     
-    // node-phantom callback returns err and status args
-    // phantom callback returns only status arg
     page.open( url, function(status){
          if (status !== 'success') {
             console.log('Unable to access network', status);
-            // setTimeout(function(){ph.exit()}, 0)
+            setTimeout(function(){
+                page.close
+                // ph.exit()
+            }, 500)
             // // ph.exit(1);  // thow error if you want to
             if(callback && callback instanceof Function)
                 return callback({error: ['phantom unable to open webpage at', url].join(' '), status: status})
@@ -170,7 +171,6 @@ function openPageAtUrl(page, url, options, callback){
 }
 
 function onPageOpen(page, options, url, callback){
-// function onPageOpen(page, ph, pageinfo, url, callback){
     page.evaluate( 
         function(options){ 
             'use strict';
@@ -205,9 +205,9 @@ function onPageOpen(page, options, url, callback){
             , height = options.bodyheight || size.height || 900
             ;
             
-            console.log('size:', JSON.stringify(size));
-            console.log('height:', height);
-            console.log('width:', width);
+            // console.log('size:', JSON.stringify(size));
+            // console.log('height:', height);
+            // console.log('width:', width);
 
             [window, 'html, body'].forEach(function(name){
                 var whb = $(name).css({
@@ -218,7 +218,7 @@ function onPageOpen(page, options, url, callback){
                     , 'max-height': height
                 })
 
-                console.log('whb:', name, JSON.stringify({size: {height: whb.height(), width: whb.width()}}) )
+                // console.log('whb:', name, JSON.stringify({size: {height: whb.height(), width: whb.width()}}) )
             });
             // }
              
@@ -233,20 +233,31 @@ function onPageOpen(page, options, url, callback){
             // $('.layer-toggle:not(:checked)').closest('.legendGroup').hide()
             // $('.legendGroup[class*=" disabled-"]').hide()
              
-            var printmessage = 'PAGE READY FOR PRINTING';
-            // send it after 30 seconds
-            var timer = setTimeout(function(){
+            var printmessage = 'PAGE READY FOR PRINTING'
+            , timer
+            ;
+            function triggerPrint(){
+                clearTimeout(timer);
                 $(app).trigger('print');
                 console.log(printmessage)
-            }, 30 * 1000);
+            }
+            
+            // send it after 30 seconds if not sent on layerconfigs:loaded
+            timer = setTimeout(triggerPrint, 30 * 1000);
+            // var timer = setTimeout(function(){
+            //     console.log('timed out waiting for layerconfigs to load...sending printmessage now anyway')
+            //     $(app).trigger('print');
+            //     console.log(printmessage)
+            // }, 30 * 1000);
 
             // or when the map is finished loading layerconfigs
-            app.map.on('layerconfigs:loaded', function(){
-                // hide/remove non-active layers from the print output
-                $(app).trigger('print');
-                clearTimeout(timer);
-                console.log(printmessage)
-            });
+            app.map.on('layerconfigs:loaded', triggerPrint)
+                // function(){
+            //     // hide/remove non-active layers from the print output
+            //     $(app).trigger('print');
+            //     clearTimeout(timer);
+            //     console.log(printmessage)
+            // });
 
             console.log('DONE RUNNING JAVASCRIPT ON PHANTOMJS PAGE');
             return {
@@ -401,7 +412,7 @@ function makeMap(url, options, callback){
             if(msg == 'PAGE READY FOR PRINTING'){
                 requests.printmessageReceived = true;
                 requests.emit('close', msg);
-                console.log('\nrequests remaining at time when page ready from printing:', requests.list.join('\n\t * '), '\n')
+                console.log('\n** requests remaining at time when page ready from printing:', requests.list.join('\n\t * '), '\n')
             }
 
             console.log('webpage console message:', msg, arguments);

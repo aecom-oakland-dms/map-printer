@@ -154,10 +154,6 @@ module.exports.getMaps = function(req, res){
     let next = queue.functions.shift();
     next && next() || queue.removeAllListeners('change');
   })
-
-  // queue.functions = [];
-  // queue.results = [];
-  // queue.pageorder = {};
   
    let concurrent = 0
    , done
