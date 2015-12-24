@@ -401,6 +401,7 @@ function makeMap(url, options, callback){
             if(msg == 'PAGE READY FOR PRINTING'){
                 requests.printmessageReceived = true;
                 requests.emit('close', msg);
+                console.log('\nrequests remaining at time when page ready from printing:', requests.list.join('\n\t * '), '\n')
             }
 
             console.log('webpage console message:', msg, arguments);
