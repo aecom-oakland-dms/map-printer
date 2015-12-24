@@ -10,7 +10,7 @@ let mapmaker = require('./map-printer')
 , Q = require('q')
 , pdfDocument = require('pdfkit')
 , exec = require('child_process').exec
-, cachetimeout = 1000 * 60 * 30 // 30 minutes
+, cachetimeout = 1000 * 60 * 15 // 15 minutes
 // cache items for `cachetimeout` so they don't need to be regenerated again within 30 seconds
 , cachedfiles = {}
 ;

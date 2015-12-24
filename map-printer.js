@@ -357,7 +357,8 @@ function makeMap(url, options, callback){
                 timer && clearTimeout(timer);
                 timer = setTimeout(()=>{
                     if(!requests.resolved){
-                        if(requests.list.length==0 && requests.printmessageReceived){
+                        if(requests.printmessageReceived){
+                        // if(requests.list.length==0 && requests.printmessageReceived){
                             console.log('requests done and printmessage received');
                             requests.removeAllListeners('close')
                             requests.resolve = resolve( true );
