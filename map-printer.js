@@ -132,7 +132,8 @@ function setPageSize(options){
     // resolution things -- don't seem to be important or have effect
     // page.set('zoomFactor',  100.0/96.0); //windows
     // page.set('zoomFactor',  0.821980);
-    page.set('zoomFactor',  100.0/72.0); // osx
+    // page.set('zoomFactor',  100.0/72.0); // osx
+    page.set('zoomFactor',  100.0/50.0); 
 
     return { 
         width: viewportWidth
