@@ -374,13 +374,13 @@ function makeMap(url, options, callback){
                 timer && clearTimeout(timer);
                 timer = setTimeout(()=>{
                     if(!requests.resolved){
-                        if(requests.printmessageReceived){
-                        // if(requests.list.length==0 && requests.printmessageReceived){
+                        // if(requests.printmessageReceived){
+                        if(requests.list.length==0 && requests.printmessageReceived){
                             console.log('\nrequests remaining', requests.list.join('\n\t * '), '\n')
                             console.log('printmessage received');
                             // console.log('requests done and printmessage received');
                             requests.removeAllListeners('close')
-                            requests.resolve = resolve( true );
+                            requests.resolved = resolve( true );
                         }
                     }
                 }, 1000);
