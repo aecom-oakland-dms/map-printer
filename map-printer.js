@@ -293,7 +293,7 @@ function onPageEvaluated(args){
 
 function createPDF(page, options, callback){
     // hacky stupid way to wait for it to load
-    // setTimeout(function(){
+    setTimeout(function(){
         console.log('creating temp file with prefix:', options.outfile, 'postfix:', options.filetype);
         tmp.file({ prefix: options.outfile, postfix: options.filetype, keep: true }, function _tempFileCreated(err, filepath, fd, cleanupCallback) {
           if (err) return console.error('error creating temp file:', err)//throw err;
@@ -314,7 +314,7 @@ function createPDF(page, options, callback){
               // ph.exit();
           }, 1000)
         });
-    // }, 1500)
+    }, 1500)
 }
 
 function createFileName(title, url){
