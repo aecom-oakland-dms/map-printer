@@ -145,7 +145,7 @@ function setPageSize(options){
 // let filetype = '.png';
 // let filetype = '.jpg';
 function openPage(options){
-    console.log('opening page at:', url);
+    console.log('opening page at:', options.url);
     
     let orientation = options.orientation || 'Landscape'
     , filetype = options.filetype = `.${options.filetype || 'jpg'}`
