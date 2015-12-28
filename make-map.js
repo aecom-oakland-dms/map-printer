@@ -146,7 +146,8 @@ module.exports.getMaps = function(req, res){
   , viewname = views.join('---');
 
   if(cachedfiles[view]){
-    console.log('sending cached item for view:', view, cachedfiles[view]);
+    console.log('sending cached item for view');
+    // console.log('sending cached item for view:', view, cachedfiles[view]);
     return streamFile(cachedfiles[view].url, res);
   }
 

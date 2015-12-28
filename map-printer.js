@@ -377,7 +377,7 @@ function makeMap(url, options, callback){
                     if(!requests.resolved){
                         // if(requests.printmessageReceived){
                         if(requests.list.length==0 && requests.printmessageReceived){
-                            console.log('\nrequests remaining', requests.list.join('\n\t * '), '\n')
+                            // console.log('\nrequests remaining', requests.list.join('\n\t * '), '\n')
                             console.log('printmessage received');
                             // console.log('requests done and printmessage received');
                             requests.removeAllListeners('close')
@@ -423,7 +423,8 @@ function makeMap(url, options, callback){
             if(msg == 'PAGE READY FOR PRINTING'){
                 requests.printmessageReceived = true;
                 requests.emit('close', msg);
-                console.log('\n** requests remaining at time when page ready from printing:', requests.list.join('\n\t * '), '\n')
+                if(requests.list.length>0)
+                    console.log('\n** requests remaining at time when page ready from printing:', requests.list.join('\t * '), '\n')
             }
 
             console.log('webpage console message:', msg);
