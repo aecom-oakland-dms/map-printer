@@ -259,12 +259,12 @@ function evaluatePage(options){
     }
     
     // send it after 30 seconds if not sent on layerconfigs:loaded
-    timer = setTimeout(triggerPrint, 30 * 1000);
+    timer = setTimeout(triggerPrint.bind(null, 'triggering print from timeout'), 30 * 1000);
 
     // or when the map is finished loading layerconfigs
     if(window.layerconfigs_loading){
         var configs = $.extend({}, window.layerconfigs_loading)
-        console.log('need to wait for layerconfigs', window.layerconfigs_loading);
+        console.log('need to wait for layerconfigs', JSON.stringify(window.layerconfigs_loading) );
         $(window).on('layerconfigs:loaded', function(){
             console.log('triggering print from layerconfigs:loaded');
             triggerPrint('waited for ' + JSON.stringify(configs));
@@ -315,7 +315,7 @@ function createPDF(page, options, callback){
               // ph.exit();
           }, 1000)
         });
-    // }, 1500)
+    // }, 1000)
 }
 
 function createFileName(title, url){
