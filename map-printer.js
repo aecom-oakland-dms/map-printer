@@ -88,7 +88,7 @@ function setPageSize(options){
     // }
 
     //interchange if width is equal to height
-    console.log('options.orientation', options.orientation)
+    // console.log('options.orientation', options.orientation)
     if(/landscape/i.test(orientation)){
         temp = widthInInches;
         widthInInches = heightInInches;
@@ -100,7 +100,7 @@ function setPageSize(options){
     }
 
     // calculate corresponding viewport dimension in pixels
-    console.log('options.filetype', options.filetype)
+    // console.log('options.filetype', options.filetype)
     if(options.filetype !== '.pdf'){
         viewportWidth = dpi*widthInInches;
         viewportHeight = dpi*heightInInches;
@@ -120,7 +120,7 @@ function setPageSize(options){
         }
     }); 
 
-    console.log('viewportWidth', viewportWidth, 'viewportHeight', viewportHeight);
+    // console.log('viewportWidth', viewportWidth, 'viewportHeight', viewportHeight);
 
     page.set('viewportSize', { width:  viewportWidth, height: viewportHeight }, function(){
         // callback

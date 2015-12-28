@@ -23,7 +23,8 @@ function makeMap(url, options, oncomplete){
 }
 
 function mapcomplete(res, data){
-  console.log('mapcomplete', 'this', this, 'data', data);
+  // console.log('mapcomplete:', data);
+  // console.log('mapcomplete', 'this', this, 'data', data);
   if(!data)
     return res.send({error : '?'})
 
@@ -37,7 +38,7 @@ function mapcomplete(res, data){
   ;
 
   // if(data.initOptions){
-  console.log('storing cached item for:', this.view)
+  // console.log('storing cached item for:', this.view)
   cachedfiles[this.view] = {url: data.filepath}
     // data.initOptions.itemcache.url = data.filepath;
     // console.log('data.initOptions:');
@@ -225,7 +226,7 @@ function correctOrder(ordermap){
 
 function makePDF(data, res, callback){
   // let jpgs = []
-  console.log('makePDF', 'this', this);
+  // console.log('makePDF', 'this', this);
   let pdfName = data.shift() + '.pdf'
   , author = '{AUTHOR}'
   , date = new Date().toLocaleString()
