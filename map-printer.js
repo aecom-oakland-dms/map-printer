@@ -392,7 +392,8 @@ function makeMap(url, options, callback){
                     requests.list.push(url);
                 })
                 .on('close', (url, force)=>{
-                    requests.list.splice(requests.list.indexOf(url), 1);
+                    if(requests.list.indexOf(url)!==-1)
+                        requests.list.splice(requests.list.indexOf(url), 1);
                     if(requests.list.length<3)
                         process.stdout.write(`requests remaining: ${requests.list.join(' , ')} \r`)
                     checkqueue();
@@ -411,6 +412,11 @@ function makeMap(url, options, callback){
 
         page.set('onResourceRequested', function (req) {
             requests.emit('open', req.url)
+        });
+
+        page.set('onResourceError', function (resourceError) {
+            console.log('resourceError for:', JSON.stringify(resourceError) )
+            requests.emit('close', resourceError.url);
         });
 
         page.set('onResourceReceived', function (res) {
