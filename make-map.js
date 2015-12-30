@@ -34,12 +34,17 @@ function mapcomplete(res, data){
 
   let filepath = data.filepath
   , sendname = data.sendname
-  , mimetype = mime.lookup(filepath)
+  // , mimetype = mime.lookup(filepath)
   ;
 
   // if(data.initOptions){
-  // console.log('storing cached item for:', this.view)
-  cachedfiles[this.view] = {url: data.filepath}
+  console.log('storing cached item for:', this.view)
+  if(!cachedfiles[this.view])
+    cachedfiles[this.view] = {filepath: data.filepath, name: sendname, deletetimer: data.deletetimer}
+  // else{
+  //   cachedfiles[this.view]
+  // }
+  // 
     // data.initOptions.itemcache.url = data.filepath;
     // console.log('data.initOptions:');
     // console.dir(data.initOptions);
@@ -72,10 +77,10 @@ function mapcomplete(res, data){
   }
 
   try{
-      setCookie(res, sendname.split(' ').shift());
+      // setCookie(res, sendname.split(' ').shift());
 
-      res.setHeader('Content-disposition', 'attachment; filename=' + sendname );
-      res.setHeader('Content-type', mimetype);
+      // res.setHeader('Content-disposition', 'attachment; filename=' + sendname );
+      // res.setHeader('Content-type', mimetype);
       
       if(datacallback instanceof Function)
         // catch all possible res close events and do temp file cleanup
@@ -96,7 +101,7 @@ function mapcomplete(res, data){
           )
 
       
-      return streamFile(filepath, res)
+      return streamFile(filepath, sendname, res)
 
   }catch(err){
     console.log(err);
@@ -107,18 +112,24 @@ function mapcomplete(res, data){
   
 }
 
-function streamFile(filepath, res){
-  console.log('streaming:', path.resolve(filepath))
+function streamFile(filepath, sendname, res){
+  let mimetype = mime.lookup(filepath);
+  console.log('streaming:', path.resolve(filepath), 'as:', sendname, 'with mimetype:', mimetype);
+  
+  setCookie(res, sendname.split(' ').shift());
+  res.setHeader('Content-disposition', 'attachment; filename=' + sendname );
+  res.setHeader('Content-type', mimetype);
+
   let filestream = fs.createReadStream( path.resolve(filepath) );
-      try{
-        filestream
-          .on('end', function(){
-            res.end && res.end()
-          })
-          .pipe(res, {end: false})
-      }catch(err){
-        console.error(err, 'with filestream')
-      }
+  try{
+    filestream
+      .on('end', function(){
+        res.end && res.end()
+      })
+      .pipe(res, {end: false})
+  }catch(err){
+    console.error(err, 'with filestream')
+  }
   return filestream
 }
 
@@ -143,12 +154,22 @@ module.exports.getMaps = function(req, res){
   let query = req.query || {};
   let view = req.params ? req.params.view || query.view : 'www.google.com';
   let views = view ? [view] : undefined
-  , viewname = views.join('---');
+  , viewname = views.join('---')
+  , allparams = req.params && req.params.all() || req.query || {}
+  , cacheID = Object.keys(allparams).map(key=>key!=='filetype' ? key + '=' + allparams[key] : '').join(' ')
+  ;
 
-  if(cachedfiles[view]){
+  let cached = cachedfiles[cacheID];
+  if(cached){
     console.log('sending cached item for view');
     // console.log('sending cached item for view:', view, cachedfiles[view]);
-    return streamFile(cachedfiles[view].url, res);
+    if(/pdf/i.test(allparams.filetype)){
+      if(!cached.pdfpath)
+        return sendAsPDF.call({ view: cacheID }, cached, res, mapcomplete)
+      else
+        return streamFile(cached.pdfpath, cached.pdfname, res);
+    }
+    return streamFile(cached.filepath, cached.name, res);
   }
 
   let queue = new Queue();
@@ -183,7 +204,6 @@ module.exports.getMaps = function(req, res){
 
           concurrent +=1;
           console.log('concurrent renderers:', concurrent, 'now starting view: ', view)
-          
 
           return makeMap(view, options, function(data){
 
@@ -197,7 +217,7 @@ module.exports.getMaps = function(req, res){
               let ordered = correctOrder( queue.pageorder )
               ordered.unshift( view )
               // ordered.unshift( views.length === 1 ? view : 'Responder Maps' )
-              return makePDF.call({view: viewname},ordered, res, mapcomplete);
+              return makePDF.call({ view: cacheID },ordered, res, mapcomplete);
             }
           });
       }
@@ -215,6 +235,26 @@ function correctOrder(ordermap){
     return Object.keys(ordermap).sort().map(function(index){
         return ordermap[index]
     })
+}
+
+function sendAsPDF(options, res, callback){
+  let pdfpath = options.filepath.replace(/(\.png|\.jpg)$/i, '.pdf')
+  , parts = pdfpath.split(/\/\\/g)
+  , pdfname = parts.pop()
+  , tempdir = parts.join('/')
+  , deletes = []
+  ;
+  console.log(pdfpath, options.filepath, pdfname, tempdir)
+  convertJPG(options.filepath, pdfname, done=>{
+      // set name and path in the cache
+      options.pdfpath = pdfpath;
+      options.pdfname = options.name.replace(/(\.png|\.jpg)$/i, '.pdf');;
+
+      deletes.push(options.filepath);
+      setTimeout(t=>{
+        readyToSend.call(this, tempdir, pdfpath, options.pdfname, deletes, callback, res)
+      }, 500)
+  })
 }
 
 // GraphicsMagick page sizes from http://www.graphicsmagick.org/GraphicsMagick.html#details-page
@@ -242,41 +282,73 @@ function makePDF(data, res, callback){
   })
   ;
 
+  // console.log('data:', data)
+  // if(!data instanceof Array){
+  //   // pdfName = data.sendname || ('Print Output' + new Date().toLocaleDateString())
+  //   data = [data]
+  // }
+
   if(data.length > 1){
-    tmp.dir({prefix: 'map-print' }, function _tempDirCreated(err, tempdir) {
+    tmp.dir({prefix: 'map-print' }, (err, tempdir)=>{
       if (err) throw err;
      
       // console.log("Dir: ", tempdir);
-      let pdfpath = path.join(tempdir, pdfName)
+      let pdfname = (data[0].sendname || pdfName).replace(/(\.png|\.jpg)$/i, '.pdf') 
+      , pdfpath = path.join(tempdir, pdfname)
       , promises = []
       , deletes = []
       , mergepdfs = []
+      // , convertimages = []
       ;
 
       console.log('creating', pdfpath);
 
-      let  accessnote = 'Accessed :' + new Date().toLocaleDateString() + ' - ' + new Date().toLocaleTimeString()
+      let  accessnote = 'Accessed :' + new Date().toLocaleDateString() + ' - ' 
+      + new Date().toLocaleTimeString()
       ;
 
       // if(length > 1){
-      data.forEach(function(el){
+      data.forEach(el=>{
         if(el.filepath){
           let mimetype = mime.lookup(el.filepath);
           // pdfs
           if( ! ~ mimetype.indexOf('image') ){
             mergepdfs.push('"' + el.filepath + '"')
           }
+          // else{
+          //   convertimages.push(el.filepath)
+          // }
         }
         if(el.callback instanceof Function)
           deletes.push(el.callback)
       })
 
-      mergePDFs(mergepdfs, pdfpath, function(){
-          readyToSend.call(this, tempdir, pdfpath, pdfName, deletes, callback, res)
-      })
-      
+      // if(convertimages.length>0){
+      //   convertimages.forEach((image, index)=>{
+      //     let name = convertimages.length > 1 ? index+pdfname : pdfname
+      //     , filepath = path.join(tempdir, name)
+      //     ;
+      //     convertJPG(image, filepath, function(){
+      //         mergepdfs.push(filepath);
+      //         deletes.push(filepath);
+      //         // readyToSend.call(this, tempdir, pdfpath, pdfName, deletes, callback, res)
+      //     })
+      //   })
+      // }
+
+      if(mergepdfs.length>0){
+        mergePDFs(mergepdfs, pdfpath, ()=>{
+            readyToSend.call(this, tempdir, pdfpath, pdfname, deletes, callback, res)
+        })
+      }else{
+        // setTimeout(t=>{
+          readyToSend.call(this, tempdir, pdfpath, pdfname, deletes, callback, res)
+        // }, 500)
+      }
+
     })
-  }else{
+  }
+  else{
     // send the pdf and break out of the loop if this is the only pdf
     Q.fapply( ()=>{
       // console.log('callback is:')
@@ -308,19 +380,19 @@ function addPageFooter(pdf, pageNum, numPages, accessnote) {
 
 function readyToSend(tempdir, pdfpath, pdfName, deletes, callback, res){
   console.log('ready to send==========');
+
   let resdata = {
       filepath : pdfpath,
       sendname : pdfName,
       callback: function(){
         console.log('done!', 'now it`s time to delete', pdfpath);
-        setTimeout(function(){
+        resdata.deletetimer = setTimeout(function(){
           deleteDir(tempdir);
           while(deletes.length>0){
             // console.log(deletes.length, 'still left to delete');
             deletes.shift()()
           }
-        }, cachetimeout) // wait 30 minutes
-        // }, 5000) // wait 5 seconds then delete the files
+        }, cachetimeout) // wait time specified in cachetimeout
           
       }
     }
@@ -346,6 +418,26 @@ function mergePDFs(pdfs, outfilepath, callback){
   + ' -dBATCH ' + pdfs.join(' ')
   ;
   console.log(cmd, pdfs.join(' '));
+
+  let child = exec(cmd, function(error, stdout, stderr){
+    console.log('stdout: ' + stdout);
+    console.log('stderr: ' + stderr);
+    if(error) {
+      console.log('exec error: ' + error);
+      return callback(error)
+    }
+    return callback()
+  })
+
+}
+
+function convertJPG(image, outfilepath, callback){
+  // add other pdfs to the mapbook - eg. cover sheet, etc
+  // pdfs.unshift('"/user/coversheet.pdf"');
+  
+  let cmd = `img2pdf -s letter -o "${outfilepath}" "${image}"`
+ 
+  console.log(cmd, image);
 
   let child = exec(cmd, function(error, stdout, stderr){
     console.log('stdout: ' + stdout);
