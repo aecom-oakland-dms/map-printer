@@ -313,13 +313,15 @@ function evaluatePage(options){
                 if(!app.map.boundsFitter.initialSetup){
                     // wait 5 seconds and setupPrintTrigger if not already done
                     var timeout;
-                    function trigger(evt){
+                    function trigger(msg){
                         clearTimeout(timeout);
                         app.map.off('bounds:fit', trigger);
-                        setupPrintTrigger(evt && evt.message || 'from bounds:fit timeout')
+                        setupPrintTrigger( typeof msg == 'string' ?  msg : 'from bounds:fit event trigger' )
                     }
-                    timeout = setTimeout(trigger, 5000);
-                    app.map.once('bounds:fit', trigger, {message:'from bounds:fit event trigger'});
+                    timeout = setTimeout(function(){
+                        trigger('from bounds:fit timeout')
+                    }, 10000);
+                    app.map.once('bounds:fit', trigger});
                 }else
                     setupPrintTrigger('app.map.boundsFitter.initialSetup is truthy')
             }else{
