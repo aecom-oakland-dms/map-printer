@@ -290,11 +290,16 @@ function evaluatePage(options){
         console.log('app.map', app.map);
         console.log('app.map.boundsFitter', app.map.boundsFitter);
         if(app.map.boundsFitter){
-            if(!app.map.boundsFitter.initialSetup)
-                app.map.once('bounds:fit', function(evt){
+            if(!app.map.boundsFitter.initialSetup){
+                // wait 5 seconds and setupPrintTrigger if not already done
+                function trigger(evt){
+                    clearTimeout(timemout);
+                    app.map.off('bounds:fit', trigger);
                     setupPrintTrigger('from bounds:fit')
-                });
-            else
+                }
+                var timeout = setTimeout(trigger, 5000);
+                app.map.once('bounds:fit', trigger);
+            }else
                 setupPrintTrigger('app.map.boundsFitter.initialSetup is truthy')
         }else{
             setupPrintTrigger('map._config_elements_loaded')
