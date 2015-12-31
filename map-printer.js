@@ -219,23 +219,6 @@ function evaluatePage(options){
             .addClass('phantom')
             // .addClass(options.orientation || '')
         ;
-        // , domain = '*''
-        // // , domain = location.protocol + '//' + location.hostname + ':' + location.port
-        // ;
-
-        // function sendMessage(){
-        //     var message = [].slice.call(arguments).join(' ')
-        //     iframe.contentWindow.postMessage(message, domain)
-        // }
-        
-        // add the pageinfo
-        // $('footer').append(
-        //     "<table width='100%'>" + 
-        //       "<tr><td class='pull-left'><small> " + (pageOptions.accessnote || '') + "</small></td>" +
-        //       "<td>&nbsp;</td> <td>&nbsp;</td>" +
-        //       "<td colspan='2' style='text-align: right;'><small>" + pageOptions.pageNum + " / " + pageOptions.numPages + "</small></td></tr>" +
-        //       "</table>"
-        // );
         
         var size = options.pageSize || {}
         , filetype = options.filetype || ''
@@ -253,11 +236,11 @@ function evaluatePage(options){
         
         // console.log('size:', JSON.stringify(size));
 
-        console.log('height:', height);
-        console.log('width:', width);
+        // console.log('height:', height);
+        // console.log('width:', width);
 
         // ['html, body'].forEach(function(name){
-        console.log('whb before resize:', 'html, body', JSON.stringify({size: {height: $('html, body').height(), width: $('html, body').width()}}) )
+        // console.log('whb before resize:', 'html, body', JSON.stringify({size: {height: $('html, body').height(), width: $('html, body').width()}}) )
         // [window, 'html, body'].forEach(function(name){
         //     var whb = $(name).css({
         //         overflow: 'hidden'
@@ -303,12 +286,16 @@ function evaluatePage(options){
             triggerPrint("didn't wait for any layerconfigs");
         }
 
-        // console.log('app', app);
+        console.log('app', app);
+        console.log('app.map', app.map);
+        console.log('app.map.boundsFitter', app.map.boundsFitter);
         if(app.map.boundsFitter){
             if(!app.map.boundsFitter.initialSetup)
                 app.map.once('bounds:fit', function(evt){
                     setupPrintTrigger('from bounds:fit')
                 });
+            else
+                setupPrintTrigger('app.map.boundsFitter.initialSetup is truthy')
         }else{
             setupPrintTrigger('map._config_elements_loaded')
         }
