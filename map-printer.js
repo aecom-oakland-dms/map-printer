@@ -269,7 +269,11 @@ function evaluatePage(options){
             console.log(printmessage);
         }
         
+        var triggersetup;
         function setupPrintTrigger(msg){
+            if(triggersetup) return
+            triggersetup = true;
+
             console.log('setupPrintTrigger with message:', msg);
             // send it after 30 seconds if not sent on layerconfigs:loaded
             timer = setTimeout(triggerPrint.bind(null, 'triggering print from timeout'), 30 * 1000);
@@ -286,23 +290,41 @@ function evaluatePage(options){
             triggerPrint("didn't wait for any layerconfigs");
         }
 
-        console.log('app', app);
-        console.log('app.map', app.map);
-        console.log('app.map.boundsFitter', app.map.boundsFitter);
-        if(app.map.boundsFitter){
-            if(!app.map.boundsFitter.initialSetup){
-                // wait 5 seconds and setupPrintTrigger if not already done
-                function trigger(evt){
-                    clearTimeout(timeout);
-                    app.map.off('bounds:fit', trigger);
-                    setupPrintTrigger('from bounds:fit')
+        function triggerWhenReady(msg){
+            if(msg)
+                console.log('triggerWhenReady', msg)
+            console.log('app', app);
+            console.log('app.map', app.map);
+            console.log('app.map.boundsFitter', app.map.boundsFitter);
+            console.log('app.map.hash', app.map.hash);
+            
+            if(app.map.boundsFitter){
+                if(!app.map.hash){
+                    var timer;
+                    function tryagain(evt){
+                        clearTimeout(timer);
+                        app.map.off('hash:set', tryagain);
+                        triggerWhenReady(evt && evt.message || 'from hash:set timeout')
+                    }
+                    timer =  setTimeout(tryagain, 5000);
+                    return app.map.once('hash:set', tryagain, {message: 'from hash:set'});
                 }
-                var timeout = setTimeout(trigger, 5000);
-                app.map.once('bounds:fit', trigger);
-            }else
-                setupPrintTrigger('app.map.boundsFitter.initialSetup is truthy')
-        }else{
-            setupPrintTrigger('map._config_elements_loaded')
+
+                if(!app.map.boundsFitter.initialSetup){
+                    // wait 5 seconds and setupPrintTrigger if not already done
+                    var timeout;
+                    function trigger(evt){
+                        clearTimeout(timeout);
+                        app.map.off('bounds:fit', trigger);
+                        setupPrintTrigger(evt && evt.message || 'from bounds:fit timeout')
+                    }
+                    timeout = setTimeout(trigger, 5000);
+                    app.map.once('bounds:fit', trigger, {message:'from bounds:fit event trigger'});
+                }else
+                    setupPrintTrigger('app.map.boundsFitter.initialSetup is truthy')
+            }else{
+                setupPrintTrigger('map._config_elements_loaded')
+            }
         }
 
         function scaleIframe(){
@@ -335,6 +357,8 @@ function evaluatePage(options){
                 console.log('iframe.style.webkitTransform is:', iframe.style.webkitTransform);
             }
         }
+
+        triggerWhenReady();
         scaleIframe();
 
         var footerlabel = document.getElementById('footerlabel');
