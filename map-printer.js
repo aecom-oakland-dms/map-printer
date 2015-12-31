@@ -160,8 +160,10 @@ function openPage(options){
 
     options.bodyheight = options.height;
     options.bodywidth = options.width;
-    
-    var printurl = `http://localhost:${(process.env.PORT || 1337)}/print/iframe`;
+    var host = `http://localhost:${(process.env.PORT || 1337)}`;
+    var printurl = `${host}/print/iframe`;
+    options.url = options.url.replace(/http(s)?:\/\/([^\/]*)+/i, host);
+
     console.log('phantom opening page at:', printurl);
 
     options.page.open( printurl, function(status){
