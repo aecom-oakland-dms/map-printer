@@ -32,8 +32,8 @@ function setPageSize(options){
     , page = options.page
     , format = options.format
     , orientation = options.orientation
-    // , dpi = 300
-    , dpi = 150 //from experimenting with different combinations of viewportSize and paperSize the pixels per inch comes out to be 150
+    , dpi = 300
+    // , dpi = 150 //from experimenting with different combinations of viewportSize and paperSize the pixels per inch comes out to be 150
     , cmToInchFactor = 0.393701 
     , widthInInches
     , heightInInches

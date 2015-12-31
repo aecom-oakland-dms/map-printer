@@ -250,7 +250,7 @@ function sendAsPDF(options, res, callback){
       options.pdfpath = pdfpath;
       options.pdfname = options.name.replace(/(\.png|\.jpg)$/i, '.pdf');;
 
-      deletes.push(options.filepath);
+      deletes.push(()=>fs.unlink(options.filepath, cb=>console.log('deleted', options.filepath)) ) ;
       setTimeout(t=>{
         readyToSend.call(this, tempdir, pdfpath, options.pdfname, deletes, callback, res)
       }, 500)
@@ -390,7 +390,9 @@ function readyToSend(tempdir, pdfpath, pdfName, deletes, callback, res){
           deleteDir(tempdir);
           while(deletes.length>0){
             // console.log(deletes.length, 'still left to delete');
-            deletes.shift()()
+            let func = deletes.shift()
+            if(func instanceof Function)
+              func()
           }
         }, cachetimeout) // wait time specified in cachetimeout
           
