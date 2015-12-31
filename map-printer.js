@@ -293,7 +293,7 @@ function evaluatePage(options){
             if(!app.map.boundsFitter.initialSetup){
                 // wait 5 seconds and setupPrintTrigger if not already done
                 function trigger(evt){
-                    clearTimeout(timemout);
+                    clearTimeout(timeout);
                     app.map.off('bounds:fit', trigger);
                     setupPrintTrigger('from bounds:fit')
                 }
