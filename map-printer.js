@@ -196,7 +196,7 @@ function onPageOpen(options){
 /// or the options object passed in
 /// it is run in the "browser" context, not the node context
 function evaluatePage(options){ 
-    'use strict';
+    // 'use strict';
     /* run javascript on webpage */
     options = options || {};
 
