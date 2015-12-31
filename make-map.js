@@ -17,7 +17,7 @@ let mapmaker = require('./map-printer')
 
 function makeMap(url, options, oncomplete){
   // let url = 'http://localhost:3000/responder-maps/' + view;
-  console.log('sending %s to mapmaker', url);
+  // console.log('sending %s to mapmaker', url);
   // cachedfiles[url] = {}
   mapmaker.makeMap(url, options, oncomplete);
 }

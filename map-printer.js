@@ -38,10 +38,10 @@ function setPageSize(options){
     , widthInInches
     , heightInInches
     , accessnote = 'Accessed at:' + new Date().toLocaleDateString() + ' - ' + new Date().toLocaleTimeString()
-    , margin = '1cm'
-    , viewportWidth
-    , viewportHeight
-    , viewportSize
+    , margin = '0cm'
+    // , margin = '1cm'
+    , viewportWidth = options.width
+    , viewportHeight = options.height
     ;
 
     switch(true){
@@ -50,8 +50,8 @@ function setPageSize(options){
             heightInInches = 11;
             // // remember that these are swapped for Landscape orientation
             // viewportWidth = 1450;
-            viewportWidth = 1250;
-            viewportHeight = 1800;
+            // viewportWidth = 1250;
+            // viewportHeight = 1800;
             break;
         case /Legal/i.test(format):
             widthInInches = 8.5;
@@ -76,28 +76,28 @@ function setPageSize(options){
             // viewportWidth = 2250;
             // viewportWidth = 2500;
             // viewportHeight = 3600;
-            viewportWidth = 1850;
-            viewportHeight = 3000;
+            // viewportWidth = 1850;
+            // viewportHeight = 3000;
             break;
     }
 
     // if(options.addMargin){
         //reduce by the margin (assuming 1cm margin on each side)
-        widthInInches-= 2*cmToInchFactor;
-        heightInInches-= 2*cmToInchFactor;
+        // widthInInches-= 2*cmToInchFactor;
+        // heightInInches-= 2*cmToInchFactor;
     // }
 
     //interchange if width is equal to height
     // console.log('options.orientation', options.orientation)
-    if(/landscape/i.test(orientation)){
-        temp = widthInInches;
-        widthInInches = heightInInches;
-        heightInInches = temp;
+    // if(/landscape/i.test(orientation)){
+    //     temp = widthInInches;
+    //     widthInInches = heightInInches;
+    //     heightInInches = temp;
 
-        temp = viewportWidth;
-        viewportWidth = viewportHeight
-        viewportHeight = temp
-    }
+    //     temp = viewportWidth;
+    //     viewportWidth = viewportHeight
+    //     viewportHeight = temp
+    // }
 
     // calculate corresponding viewport dimension in pixels
     // console.log('options.filetype', options.filetype)
@@ -108,6 +108,9 @@ function setPageSize(options){
 
     // possible paper sizes for GS from - http://www.a4papersize.org/a4-paper-size-in-pixels.php
     page.set('paperSize', { 
+        // width: viewportWidth + 'px'
+        // , height: viewportHeight + 'px'
+        // , margin: '0px'
         format: format
         , orientation: orientation
         , margin: margin
@@ -119,12 +122,13 @@ function setPageSize(options){
             height: '0.0cm'
         }
     }); 
+    // page.get('paperSize', function(){console.log('paperSize outside of callback', arguments, 'options.width', options.width, 'options.height', options.height) } )
+
 
     // console.log('viewportWidth', viewportWidth, 'viewportHeight', viewportHeight);
 
-    page.set('viewportSize', { width:  viewportWidth, height: viewportHeight }, function(){
-        // callback
-    } ); 
+    page.set('viewportSize', { width:  viewportWidth, height: viewportHeight }); 
+    // page.get('viewportSize', function(){console.log('viewportSize', arguments, 'options.width', options.width, 'options.height', options.height) } )
 
     page.clipRect = {top: 0, left: 0, width: viewportWidth, height: viewportHeight};  
     page.set('clipRect', {top: 0, left: 0, width: viewportWidth, height: viewportHeight});  
@@ -145,7 +149,7 @@ function setPageSize(options){
 // let filetype = '.png';
 // let filetype = '.jpg';
 function openPage(options){
-    console.log('opening page at:', options.url);
+    // console.log('opening page at:', options.url);
     
     let orientation = options.orientation || 'Landscape'
     , filetype = options.filetype = `.${options.filetype || 'jpg'}`
@@ -157,7 +161,10 @@ function openPage(options){
     options.bodyheight = options.height;
     options.bodywidth = options.width;
     
-    options.page.open( options.url, function(status){
+    var printurl = `http://localhost:${(process.env.PORT || 1337)}/print/iframe`;
+    console.log('phantom opening page at:', printurl);
+
+    options.page.open( printurl, function(status){
          if (status !== 'success') {
             console.log('Unable to access network', status);
             setTimeout(function(){
@@ -189,92 +196,166 @@ function onPageOpen(options){
 function evaluatePage(options){ 
     'use strict';
     /* run javascript on webpage */
-    window.phantom = true;
     options = options || {};
 
-    // if(typeof app == 'undefined'){
-    //     console.log('`app` is undefined, creating it as emtpy object');
-    //     var app = {};
-    // }
-
-    console.log('running javascript on page via phantom', 'window.phantom?', window.phantom);
-
     // add phantom class to styles in phantom-mods.css are applied
-    $('html, body')
-        .addClass('phantom')
-        // .addClass(options.orientation || '')
-    ;
-    
-    var size = options.pageSize || {}
-    , filetype = options.filetype || ''
-    ;
-    
-    // add the pageinfo
-    // $('footer').append(
-    //     "<table width='100%'>" + 
-    //       "<tr><td class='pull-left'><small> " + (pageOptions.accessnote || '') + "</small></td>" +
-    //       "<td>&nbsp;</td> <td>&nbsp;</td>" +
-    //       "<td colspan='2' style='text-align: right;'><small>" + pageOptions.pageNum + " / " + pageOptions.numPages + "</small></td></tr>" +
-    //       "</table>"
-    // );
 
-    // adjustments for pdf output
-    // if(filetype==='.pdf'){
-    var width = options.bodywidth || size.width || 800
-    , height = options.bodyheight || size.height || 900
-    ;
-    
-    // console.log('size:', JSON.stringify(size));
-    // console.log('height:', height);
-    // console.log('width:', width);
+    var iframe = document.getElementsByTagName('iframe')[0];
+    iframe.onload = runPhantom;
+    iframe.src = options.url;
 
-    [window, 'html, body'].forEach(function(name){
-        var whb = $(name).css({
-            overflow: 'hidden'
-            , width: width
-            , 'max-width' : width
-            , 'height': height
-            , 'max-height': height
-        })
+    function runPhantom(){
+        console.log('iframe loaded, now running phantom mods:', arguments)
+        var cw = iframe.contentWindow
+        , $ = cw.$
+        , app = cw.app
+        ;
+        
+        console.log('running javascript on iframe page via phantom', 'window.phantom?', cw.window.phantom);
+        cw.window.phantom = true;
+        $('html, body')
+            .addClass('phantom')
+            // .addClass(options.orientation || '')
+        ;
+        // , domain = '*''
+        // // , domain = location.protocol + '//' + location.hostname + ':' + location.port
+        // ;
 
-        // console.log('whb:', name, JSON.stringify({size: {height: whb.height(), width: whb.width()}}) )
-    });
-    // }
-     
-    // remove all href's because they aren't necessary and they render sometimes in the PDF output
-    $('a').attr('href', null);
+        // function sendMessage(){
+        //     var message = [].slice.call(arguments).join(' ')
+        //     iframe.contentWindow.postMessage(message, domain)
+        // }
+        
+        // add the pageinfo
+        // $('footer').append(
+        //     "<table width='100%'>" + 
+        //       "<tr><td class='pull-left'><small> " + (pageOptions.accessnote || '') + "</small></td>" +
+        //       "<td>&nbsp;</td> <td>&nbsp;</td>" +
+        //       "<td colspan='2' style='text-align: right;'><small>" + pageOptions.pageNum + " / " + pageOptions.numPages + "</small></td></tr>" +
+        //       "</table>"
+        // );
+        
+        var size = options.pageSize || {}
+        , filetype = options.filetype || ''
+        , width = options.bodywidth || size.width || 800
+        , height = options.bodyheight || size.height || 900
+        ;
 
-    $('.markerLabel').removeClass('trans')
-    //     .css('font-size', '+=15px');
-     
-    var printmessage = 'PAGE READY FOR PRINTING'
-    , timer
-    ;
+        iframe.height = height;
+        iframe.width = width;
 
-    function triggerPrint(msg){
-        clearTimeout(timer);
-        $(window).trigger('print:start');
-        console.log('+++++', msg, '+++++')
-        console.log(printmessage);
+        console.log('setting iframe.src to:', options.url);
+
+        // adjustments for pdf output
+        // if(filetype==='.pdf'){
+        
+        // console.log('size:', JSON.stringify(size));
+
+        console.log('height:', height);
+        console.log('width:', width);
+
+        // ['html, body'].forEach(function(name){
+        console.log('whb before resize:', 'html, body', JSON.stringify({size: {height: $('html, body').height(), width: $('html, body').width()}}) )
+        // [window, 'html, body'].forEach(function(name){
+        //     var whb = $(name).css({
+        //         overflow: 'hidden'
+        //         , width: width
+        //         , 'max-width' : width
+        //         , 'height': height
+        //         , 'max-height': height
+        //     })
+        //     console.log('whb after resize:', name, JSON.stringify({size: {height: whb.height(), width: whb.width()}}) )
+        // });
+         
+        // remove all href's because they aren't necessary and they render sometimes in the PDF output
+        $('a').attr('href', null);
+
+        // $('.markerLabel').removeClass('trans')
+        //     .css('font-size', '+=15px');
+         
+        var printmessage = 'PAGE READY FOR PRINTING'
+        , timer
+        ;
+
+        function triggerPrint(msg){
+            clearTimeout(timer);
+            $(cw.window).trigger('print:start');
+            console.log('+++++', msg, '+++++')
+            console.log(printmessage);
+        }
+        
+        function setupPrintTrigger(msg){
+            console.log('setupPrintTrigger with message:', msg);
+            // send it after 30 seconds if not sent on layerconfigs:loaded
+            timer = setTimeout(triggerPrint.bind(null, 'triggering print from timeout'), 30 * 1000);
+
+            // or when the map is finished loading layerconfigs
+            if(cw.window.layerconfigs_loading){
+                var configs = JSON.stringify(cw.window.layerconfigs_loading);
+                console.log('need to wait for layerconfigs', configs );
+                $(cw.window).on('layerconfigs:loaded', function(){
+                    console.log('triggering print from layerconfigs:loaded');
+                    triggerPrint('waited for ' + configs);
+                })
+            }else
+            triggerPrint("didn't wait for any layerconfigs");
+        }
+
+        // console.log('app', app);
+        if(app.map.boundsFitter){
+            if(!app.map.boundsFitter.initialSetup)
+                app.map.once('bounds:fit', function(evt){
+                    setupPrintTrigger('from bounds:fit')
+                });
+        }else{
+            setupPrintTrigger('map._config_elements_loaded')
+        }
+
+        function scaleIframe(){
+            var rect = document.body.getClientRects()[0]
+            , heightscale = rect.height / height
+            , widthscale = rect.width / width
+            , scale = heightscale < 1 
+                ? heightscale < widthscale
+                 ? heightscale : widthscale
+                    : widthscale < 1
+                     ? widthscale
+                      : undefined;
+            console.log('scale difference is:', scale)
+            if(scale){
+                var translateX = -rect.width * scale / 2 + 'px'
+                , translateY = -rect.height * scale / 2 + 'px'
+                , property = 'scale(' + scale + ')'
+                // , property = 'scale(' + scale + ') translate(' + translateX + ',' + translateY + ')'
+                ;
+                // iframe.style.zoom = scale;
+                // iframe.style.marginTop = translateY;
+                // iframe.style.marginLeft = translateX;
+
+                iframe.style.transform = property;
+                iframe.style.transformOrigin = '0 0';
+                iframe.style.webkitTransform = property;
+                iframe.style.webkitTransformOrigin = '0 0';
+                console.log('iframe.style.[transform & webkitTransform] set to:', property);
+                console.log('iframe.style.transform is:', iframe.style.transform);
+                console.log('iframe.style.webkitTransform is:', iframe.style.webkitTransform);
+            }
+        }
+        scaleIframe();
+
+        var footerlabel = document.getElementById('footerlabel');
+        if(footerlabel){
+            var label = cw.document.title + ' - accessed on: ' + new Date().toLocaleDateString() + ' at ' + new Date().toLocaleTimeString();
+            console.log('setting footerlabel innerHTML to:', label);
+            footerlabel.innerHTML = label;
+        }
+        
+        console.log('DONE RUNNING JAVASCRIPT ON PHANTOMJS PAGE');
     }
-    
-    // send it after 30 seconds if not sent on layerconfigs:loaded
-    timer = setTimeout(triggerPrint.bind(null, 'triggering print from timeout'), 30 * 1000);
 
-    // or when the map is finished loading layerconfigs
-    if(window.layerconfigs_loading){
-        var configs = $.extend({}, window.layerconfigs_loading)
-        console.log('need to wait for layerconfigs', JSON.stringify(window.layerconfigs_loading) );
-        $(window).on('layerconfigs:loaded', function(){
-            console.log('triggering print from layerconfigs:loaded');
-            triggerPrint('waited for ' + JSON.stringify(configs));
-        })
-    }else
-        triggerPrint("didn't wait for any layerconfigs")
-
-    console.log('DONE RUNNING JAVASCRIPT ON PHANTOMJS PAGE');
     return {
-        title: document.title
+        title: 'Perris Dam'
+        // title: iframe.contentWindow.document.title || 'Perris Dam'
     }
 }
 
