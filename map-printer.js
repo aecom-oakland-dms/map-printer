@@ -319,7 +319,9 @@ function evaluatePage(options){
                         setupPrintTrigger( typeof msg == 'string' ?  msg : 'from bounds:fit event trigger' )
                     }
                     timeout = setTimeout(function(){
-                        trigger('from bounds:fit timeout')
+                        cw.onhashset && cw.onhashset();
+                        triggerWhenReady('try again after forcing onhashset');
+                        // trigger('from bounds:fit timeout')
                     }, 10000);
                     app.map.once('bounds:fit', trigger);
                 }else
