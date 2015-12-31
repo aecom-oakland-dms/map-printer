@@ -322,7 +322,7 @@ function evaluatePage(options){
                         cw.onhashset && cw.onhashset();
                         triggerWhenReady('try again after forcing onhashset');
                         // trigger('from bounds:fit timeout')
-                    }, 10000);
+                    }, 5000);
                     app.map.once('bounds:fit', trigger);
                 }else
                     setupPrintTrigger('app.map.boundsFitter.initialSetup is truthy')
