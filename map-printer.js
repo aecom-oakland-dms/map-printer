@@ -321,7 +321,7 @@ function evaluatePage(options){
                     timeout = setTimeout(function(){
                         trigger('from bounds:fit timeout')
                     }, 10000);
-                    app.map.once('bounds:fit', trigger});
+                    app.map.once('bounds:fit', trigger);
                 }else
                     setupPrintTrigger('app.map.boundsFitter.initialSetup is truthy')
             }else{
