@@ -28,35 +28,58 @@ function mapcomplete(res, data){
   if(!data)
     return res.send({error : '?'})
 
-  let datacallback = data.callback;
+  let datacallback = data instanceof Array ? (evt)=>{
+      console.log(evt, 'trying to run datacallbacks for multiple items');
+      data.forEach(item=>{
+        console.log('about to run datacallback for', item.filepath);
+        item.datacallback && item.datacallback();
+        item.callback && item.callback();
+      });
+    }
+    : data.callback
+  ;
+
   if(data.error)
     return res.send({error: '-?-'})
 
-  let filepath = data.filepath
-  , sendname = data.sendname
-  // , mimetype = mime.lookup(filepath)
-  ;
+  // console.log('this is:', this);
+  // console.log('data is:', data);
 
   // if(data.initOptions){
   console.log('storing cached item for:', this.view)
-  if(!cachedfiles[this.view])
-    cachedfiles[this.view] = {filepath: data.filepath, name: sendname, deletetimer: data.deletetimer}
-  // else{
-  //   cachedfiles[this.view]
-  // }
-  // 
-    // data.initOptions.itemcache.url = data.filepath;
-    // console.log('data.initOptions:');
-    // console.dir(data.initOptions);
-  // }
-  
-  console.log(data.filepath);
+  let savedItem;
+  if(!cachedfiles[this.view]){
+    let storeItem = {};
+    if(data instanceof Array){
+      data.forEach( item=> storeItem[item.type] = {filepath: item.filepath, type:item.type, name: item.sendname, deletetimer: item.deletetimer} )
+    }else
+      storeItem = {filepath: data.filepath, type:item.type, name: data.sendname, deletetimer: data.deletetimer}
+    
+    savedItem = cachedfiles[this.view] = storeItem;
+  }
+
+  // let sendItem =  data instanceof Array ? 
+  //   data.filter(item=>item.type==this.filetype)[0]
+  //   : data
+  // ;
+
+  let sendItem =  savedItem[this.filetype] || savedItem;
+
+  // console.log('sendItem is:');
+  // console.dir(sendItem);
+
+  let filepath = sendItem.filepath
+  , sendname = sendItem.name
+  ;
+
+  // console.log('sendItem:', sendItem);
+  // console.log('filepath:', filepath);
 
   let cleanupattempts = 0;
 
   function cleanup(evt){
       cleanupattempts+=1;
-      console.log('cleaning up - checking if %s exists', filepath)
+      console.log('cleaning up - checking if %s exists', filepath)  
       fs.exists(filepath, exists=>{
         if(exists){
           // remove from the memory cache
@@ -72,39 +95,31 @@ function mapcomplete(res, data){
             return cleanup(evt);
           }
         }
-        // console.log('cleaned up temp file: %s - on %s', filepath, evt);
       })
   }
 
   try{
-      // setCookie(res, sendname.split(' ').shift());
-
-      // res.setHeader('Content-disposition', 'attachment; filename=' + sendname );
-      // res.setHeader('Content-type', mimetype);
-      
-      if(datacallback instanceof Function)
-        // catch all possible res close events and do temp file cleanup
-        res.on('finish', evt=>
-            setTimeout(t=>{
-              cleanup.call('finish');
-            }, cachetimeout)
-          )
-         .on('close', evt=>
-            setTimeout(t=>{
-              cleanup.call('close');
-            }, cachetimeout)
-          )
-         .on('error', evt=>
-            setTimeout(t=>{
-              cleanup.call('error');
-            }, cachetimeout)
-          )
-
-      
+    if(datacallback instanceof Function)
+      // catch all possible res close events and do temp file cleanup
+      res.on('finish', evt=>
+          setTimeout(t=>{
+            cleanup.call('finish');
+          }, cachetimeout)
+        )
+       .on('close', evt=>
+          setTimeout(t=>{
+            cleanup.call('close');
+          }, cachetimeout)
+        )
+       .on('error', evt=>
+          setTimeout(t=>{
+            cleanup.call('error');
+          }, cachetimeout)
+        )
       return streamFile(filepath, sendname, res)
 
   }catch(err){
-    console.log(err);
+    console.log('error in mapcomplete:', err);
     setTimeout(t=>{
       datacallback instanceof Function && datacallback()
     }, cachetimeout)
@@ -157,19 +172,34 @@ module.exports.getMaps = function(req, res){
   , viewname = views.join('---')
   , allparams = req.params && req.params.all() || req.query || {}
   , cacheID = Object.keys(allparams).map(key=>key!=='filetype' ? key + '=' + allparams[key] : '').join(' ')
+  , filetype = allparams.filetype || '.jpg'
   ;
 
   let cached = cachedfiles[cacheID];
   if(cached){
-    console.log('sending cached item for view');
     // console.log('sending cached item for view:', view, cachedfiles[view]);
-    if(/pdf/i.test(allparams.filetype)){
-      if(!cached.pdfpath)
-        return sendAsPDF.call({ view: cacheID }, cached, res, mapcomplete)
-      else
-        return streamFile(cached.pdfpath, cached.pdfname, res);
+    
+    // console.log('cached is:');
+    // console.dir(cached);
+    
+    let cachedItem = cached[filetype] || cached['.' + filetype];
+    // console.log('cachedItem is')
+    // console.dir(cachedItem);
+
+    // if(/pdf/i.test(allparams.filetype)){
+    //   if(!cached.pdfpath)
+    //     return sendAsPDF.call({ view: cacheID }, cached, res, mapcomplete)
+    //   else
+    //     // return streamFile(cached.filepath, cached.filepath, res);
+    //     return streamFile(cached.pdfpath, cached.pdfname, res);
+    // }
+    
+    if( cachedItem && fs.existsSync(cachedItem.filepath) ){
+      console.log('sending cached item for view', 'for filetype:', filetype);
+      return streamFile(cachedItem.filepath, cachedItem.name, res)
     }
-    return streamFile(cached.filepath, cached.name, res);
+
+    // return streamFile(cached.filepath, cached.name, res);
   }
 
   let queue = new Queue();
@@ -194,12 +224,13 @@ module.exports.getMaps = function(req, res){
             accessnote : accessnote
             , pageNum : views.length > 1 ? index+1 : 1
             , numPages : views.length > 1 ? views.length +1 : 1 
-            , height: req.params.height || query.height
-            , width: req.params.width || query.width
-            , format: req.params.format || query.format
-            , filetype: req.params.filetype || query.filetype
-            , orientation: req.params.orientation || query.orientation
-            , quality: req.params.quality || query.quality
+            , height: req.param('height') || query.height
+            , width: req.param('width') || query.width
+            , format: req.param('format') || query.format
+            , filetype: req.param('filetype') || query.filetype
+            , orientation: req.param('orientation') || query.orientation
+            , quality: req.param('quality') || query.quality
+            , combined: req.param('combined')
           }
 
           concurrent +=1;
@@ -217,7 +248,7 @@ module.exports.getMaps = function(req, res){
               let ordered = correctOrder( queue.pageorder )
               ordered.unshift( view )
               // ordered.unshift( views.length === 1 ? view : 'Responder Maps' )
-              return makePDF.call({ view: cacheID },ordered, res, mapcomplete);
+              return makePDF.call({ view: cacheID, filetype: options.filetype, combine:options.combined },ordered, res, mapcomplete);
             }
           });
       }
@@ -282,13 +313,14 @@ function makePDF(data, res, callback){
   })
   ;
 
-  // console.log('data:', data)
+  // console.log('data:', data);
+
   // if(!data instanceof Array){
   //   // pdfName = data.sendname || ('Print Output' + new Date().toLocaleDateString())
   //   data = [data]
   // }
 
-  if(data.length > 1){
+  if(data.length > 1 && this.combine){
     tmp.dir({prefix: 'map-print' }, (err, tempdir)=>{
       if (err) throw err;
      

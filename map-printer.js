@@ -37,7 +37,7 @@ function setPageSize(options){
     , cmToInchFactor = 0.393701 
     , widthInInches
     , heightInInches
-    , accessnote = 'Accessed at:' + new Date().toLocaleDateString() + ' - ' + new Date().toLocaleTimeString()
+    // , accessnote = 'Accessed at:' + new Date().toLocaleDateString() + ' - ' + new Date().toLocaleTimeString()
     , margin = '0cm'
     // , margin = '1cm'
     , viewportWidth = options.width
@@ -81,36 +81,10 @@ function setPageSize(options){
             break;
     }
 
-    // if(options.addMargin){
-        //reduce by the margin (assuming 1cm margin on each side)
-        // widthInInches-= 2*cmToInchFactor;
-        // heightInInches-= 2*cmToInchFactor;
-    // }
-
-    //interchange if width is equal to height
-    // console.log('options.orientation', options.orientation)
-    // if(/landscape/i.test(orientation)){
-    //     temp = widthInInches;
-    //     widthInInches = heightInInches;
-    //     heightInInches = temp;
-
-    //     temp = viewportWidth;
-    //     viewportWidth = viewportHeight
-    //     viewportHeight = temp
-    // }
-
-    // calculate corresponding viewport dimension in pixels
-    // console.log('options.filetype', options.filetype)
-    if(options.filetype !== '.pdf'){
-        viewportWidth = dpi*widthInInches;
-        viewportHeight = dpi*heightInInches;
-    }
+        // }
 
     // possible paper sizes for GS from - http://www.a4papersize.org/a4-paper-size-in-pixels.php
     page.set('paperSize', { 
-        // width: viewportWidth + 'px'
-        // , height: viewportHeight + 'px'
-        // , margin: '0px'
         format: format
         , orientation: orientation
         , margin: margin
@@ -122,22 +96,22 @@ function setPageSize(options){
             height: '0.0cm'
         }
     }); 
-    // page.get('paperSize', function(){console.log('paperSize outside of callback', arguments, 'options.width', options.width, 'options.height', options.height) } )
-
-
-    // console.log('viewportWidth', viewportWidth, 'viewportHeight', viewportHeight);
 
     page.set('viewportSize', { width:  viewportWidth, height: viewportHeight }); 
-    // page.get('viewportSize', function(){console.log('viewportSize', arguments, 'options.width', options.width, 'options.height', options.height) } )
 
-    page.clipRect = {top: 0, left: 0, width: viewportWidth, height: viewportHeight};  
-    page.set('clipRect', {top: 0, left: 0, width: viewportWidth, height: viewportHeight});  
+    page.clipRect = {top: 0, left: 0, width: options.width, height: options.height};  
+    page.set('clipRect', {top: 0, left: 0, width: options.width, height: options.height});  
+
+    // page.clipRect = {top: 0, left: 0, width: viewportWidth, height: viewportHeight};  
+    // page.set('clipRect', {top: 0, left: 0, width: viewportWidth, height: viewportHeight});  
     
-    // resolution things -- don't seem to be important or have effect
+    // resolution
     // page.set('zoomFactor',  100.0/96.0); //windows
     // page.set('zoomFactor',  0.821980);
     // page.set('zoomFactor',  100.0/72.0); // osx
-    page.set('zoomFactor',  100.0/50.0); 
+    // page.set('zoomFactor',  100.0/50.0); 
+
+    page.set('zoomFactor',  96/100); 
 
     return { 
         width: viewportWidth
@@ -145,12 +119,7 @@ function setPageSize(options){
     }
 }
 
-// let filetype = '.pdf';
-// let filetype = '.png';
-// let filetype = '.jpg';
-function openPage(options){
-    // console.log('opening page at:', options.url);
-    
+function openPage(options){    
     let orientation = options.orientation || 'Landscape'
     , filetype = options.filetype = `.${options.filetype || 'jpg'}`
     , format = options.format = `${options.format || 'Letter'}`
@@ -163,7 +132,6 @@ function openPage(options){
     var host = `http://localhost:${(process.env.PORT || 1337)}`;
     var printurl = `${host}/print/iframe`;
     options.url = options.url.replace(/http(s)?:\/\/([^\/]*)+/i, host);
-
     console.log('phantom opening page at:', printurl);
 
     options.page.open( printurl, function(status){
@@ -200,10 +168,18 @@ function evaluatePage(options){
     /* run javascript on webpage */
     options = options || {};
 
-    // add phantom class to styles in phantom-mods.css are applied
+    var size = options.pageSize || {}
+    , filetype = options.filetype || ''
+    , width = options.bodywidth || size.width || 800
+    , height = options.bodyheight || size.height || 900
+    ;
+
+    var rect = document.body.getClientRects()[0];
 
     var iframe = document.getElementsByTagName('iframe')[0];
     iframe.onload = runPhantom;
+    iframe.height = height;
+    iframe.width = width;
     iframe.src = options.url;
 
     function runPhantom(){
@@ -211,52 +187,23 @@ function evaluatePage(options){
         var cw = iframe.contentWindow
         , $ = cw.$
         , app = cw.app
+        // , usecanvas = /canvas/i.test(options.url)
         ;
-        
-        console.log('running javascript on iframe page via phantom', 'window.phantom?', cw.window.phantom);
+
         cw.window.phantom = true;
+        console.log('running javascript on iframe page via phantom', 'window.phantom?', cw.window.phantom);
+        
+        // add phantom class to styles in phantom-mods.css are applied
         $('html, body')
             .addClass('phantom')
+            // .addClass(usecanvas ? 'map-use-canvas' : '')
             // .addClass(options.orientation || '')
         ;
-        
-        var size = options.pageSize || {}
-        , filetype = options.filetype || ''
-        , width = options.bodywidth || size.width || 800
-        , height = options.bodyheight || size.height || 900
-        ;
-
-        iframe.height = height;
-        iframe.width = width;
 
         console.log('setting iframe.src to:', options.url);
-
-        // adjustments for pdf output
-        // if(filetype==='.pdf'){
-        
-        // console.log('size:', JSON.stringify(size));
-
-        // console.log('height:', height);
-        // console.log('width:', width);
-
-        // ['html, body'].forEach(function(name){
-        // console.log('whb before resize:', 'html, body', JSON.stringify({size: {height: $('html, body').height(), width: $('html, body').width()}}) )
-        // [window, 'html, body'].forEach(function(name){
-        //     var whb = $(name).css({
-        //         overflow: 'hidden'
-        //         , width: width
-        //         , 'max-width' : width
-        //         , 'height': height
-        //         , 'max-height': height
-        //     })
-        //     console.log('whb after resize:', name, JSON.stringify({size: {height: whb.height(), width: whb.width()}}) )
-        // });
          
         // remove all href's because they aren't necessary and they render sometimes in the PDF output
         $('a').attr('href', null);
-
-        // $('.markerLabel').removeClass('trans')
-        //     .css('font-size', '+=15px');
          
         var printmessage = 'PAGE READY FOR PRINTING'
         , timer
@@ -293,10 +240,10 @@ function evaluatePage(options){
         function triggerWhenReady(msg){
             if(msg)
                 console.log('triggerWhenReady', msg)
-            console.log('app', app);
-            console.log('app.map', app.map);
-            console.log('app.map.boundsFitter', app.map.boundsFitter);
-            console.log('app.map.hash', app.map.hash);
+            // console.log('app', app);
+            // console.log('app.map', app.map);
+            // console.log('app.map.boundsFitter', app.map.boundsFitter);
+            // console.log('app.map.hash', app.map.hash);
             
             if(app.map.boundsFitter){
                 if(!app.map.hash){
@@ -309,8 +256,9 @@ function evaluatePage(options){
                     timer =  setTimeout(tryagain, 5000);
                     return app.map.once('hash:set', tryagain, {message: 'from hash:set'});
                 }
+                console.log('app.map.hash.initialSetup', app.map.hash.initialSetup);
 
-                if(!app.map.boundsFitter.initialSetup){
+                if(!app.map.hash.initialSetup){
                     // wait 5 seconds and setupPrintTrigger if not already done
                     var timeout;
                     function trigger(msg){
@@ -319,15 +267,15 @@ function evaluatePage(options){
                         setupPrintTrigger( typeof msg == 'string' ?  msg : 'from bounds:fit event trigger' )
                     }
                     timeout = setTimeout(function(){
-                        cw.onhashset && cw.onhashset();
+                        app.onhashset && app.onhashset();
                         triggerWhenReady('try again after forcing onhashset');
                         // trigger('from bounds:fit timeout')
                     }, 5000);
                     app.map.once('bounds:fit', trigger);
                 }else
-                    setupPrintTrigger('app.map.boundsFitter.initialSetup is truthy')
+                    setupPrintTrigger('app.map.hash.initialSetup is truthy')
             }else{
-                setupPrintTrigger('map._config_elements_loaded')
+                setupPrintTrigger('map._config_elements_not_loaded')
             }
         }
 
@@ -341,11 +289,19 @@ function evaluatePage(options){
                     : widthscale < 1
                      ? widthscale
                       : undefined;
-            console.log('scale difference is:', scale)
+
+            console.log('scale difference is:', scale);
+            console.log('heightscale is:', heightscale);
+            console.log('widthscale is:', widthscale);
+            console.log('body rect.height is:', rect.height)
+            console.log('body rect.width is:', rect.width)
+
             if(scale){
-                var translateX = -rect.width * scale / 2 + 'px'
-                , translateY = -rect.height * scale / 2 + 'px'
-                , property = 'scale(' + scale + ')'
+                // var translateX = -rect.width * scale / 2 + 'px'
+                // , translateY = -rect.height * scale / 2 + 'px'
+                // ;
+
+                var property = 'scale(' + scale + ')'
                 // , property = 'scale(' + scale + ') translate(' + translateX + ',' + translateY + ')'
                 ;
                 // iframe.style.zoom = scale;
@@ -365,12 +321,16 @@ function evaluatePage(options){
         triggerWhenReady();
         scaleIframe();
 
-        var footerlabel = document.getElementById('footerlabel');
-        if(footerlabel){
-            var label = cw.document.title + ' - accessed on: ' + new Date().toLocaleDateString() + ' at ' + new Date().toLocaleTimeString();
-            console.log('setting footerlabel innerHTML to:', label);
-            footerlabel.innerHTML = label;
-        }
+        // var accessNote = cw.document.title + ' - accessed on: ' + new Date().toLocaleDateString() + ' at ' + new Date().toLocaleTimeString();
+        var accessNote = 'Accessed on: ' + new Date().toLocaleDateString() + ' at ' + new Date().toLocaleTimeString();
+        $('#title').append('<p class="access-note">'+accessNote+'</p>');
+        
+        // var footerlabel = document.getElementById('footerlabel');
+        // if(footerlabel){
+        //     var label = cw.document.title + ' - accessed on: ' + new Date().toLocaleDateString() + ' at ' + new Date().toLocaleTimeString();
+        //     console.log('setting footerlabel innerHTML to:', label);
+        //     footerlabel.innerHTML = label;
+        // }
         
         console.log('DONE RUNNING JAVASCRIPT ON PHANTOMJS PAGE');
     }
@@ -391,34 +351,44 @@ function onPageEvaluated(args){
     
     this.resourceQueue.then(()=>{
         console.log('Creating', name);
-        createPDF(this.page, {filetype: this.filetype, outfile:name }, this.callback);
+        createRenders(this.page, {filetype: this.filetype, outfile:name }, this.callback);
     })
 } 
 
-function createPDF(page, options, callback){
-    // hacky stupid way to wait for it to load
-    // setTimeout(function(){
-        console.log('creating temp file with prefix:', options.outfile, 'postfix:', options.filetype);
-        tmp.file({ prefix: options.outfile, postfix: options.filetype, keep: true }, function _tempFileCreated(err, filepath, fd, cleanupCallback) {
-          if (err) return console.error('error creating temp file:', err)//throw err;
-          
-          page.render(filepath, {quality: options.quality || '100'} );
-          setTimeout(function(){
-              console.log('rendered:', options.outfile)
-              if(callback && callback instanceof Function){
+function createRenders(page, options, callback){
+    let promises = ['.pdf', '.jpg', '.png'].map(type=>{
+        return new Promise((resolve, reject)=>{
+            console.log('creating temp file with prefix:', options.outfile, 'postfix:', options.type);
+            
+            tmp.file({ prefix: options.outfile, postfix: type, keep: true }, function(err, filepath, fd, cleanupCallback) {
+                if (err) return console.error('error creating temp file:', err)//throw err;
+
+                page.render(filepath, {quality: options.quality || '100'} );
+
+                console.log('rendered:', options.outfile)
+                if(callback instanceof Function){
                   // If we don't need the file anymore we could manually call the cleanupCallback. -- NEED TO DO SO WHEN {keep: true} is passed in options 
                   // -- Otherwise that is not necessary if we didn't pass the keep option because the library will clean after itself. 
-                  return callback({ success: true, filepath: filepath, callback: cleanupCallback, sendname: options.outfile + options.filetype, initOptions: options })
-              }else
-                  cleanupCallback();
-              
-              // close the page after 3 seconds
-              setTimeout(t=>page.close(), 3000);
+                  let resolveObject = { success: true, filepath: filepath, type: type, callback: cleanupCallback, sendname: options.outfile + type, initOptions: options };
+                  return resolve(resolveObject)
+                  // return callback(resolveObject)
+                }
 
-              // ph.exit();
-          }, 1000)
-        });
-    // }, 1000)
+                cleanupCallback();
+                resolve(undefined)
+            });
+        })
+    })
+
+    Promise.all(promises).then(results=>{
+        // console.log('results:');
+        // console.dir(results);
+        if(callback instanceof Function)
+            callback(results);
+        
+        setTimeout(t=>page.close(), 3000);
+        // close the page after 3 seconds
+    })
 }
 
 function createFileName(title, url){
@@ -492,6 +462,8 @@ function makeMap(url, options, callback){
 
             requests
                 .on('open', url=>{
+                    if(/map\.js|layer-configs/i.test(url))
+                        console.log(url, '\n');
                     requests.list.push(url);
                 })
                 .on('close', (url, force)=>{
