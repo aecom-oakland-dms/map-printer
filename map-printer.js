@@ -174,11 +174,14 @@ function evaluatePage(options){
     , height = options.bodyheight || size.height || 900
     ;
 
+    document.body.style.overflow = 'hidden';
+    
     var rect = document.body.getClientRects()[0];
 
     var iframe = document.getElementsByTagName('iframe')[0];
     iframe.onload = runPhantom;
-    iframe.height = height;
+    // height needs to be a little less, so we don't get 2 page pdf
+    iframe.height = height ;
     iframe.width = width;
     iframe.src = options.url;
 
