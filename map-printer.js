@@ -5,6 +5,8 @@ let phantom = require('phantom')
 , util = require('util')
 // let phantom = require('node-phantom')
 , tmp = require('tmp')
+, moment = require('moment-timezone')
+, ZONE = "America/Los_Angeles"
 , url
 , outfile
 , phantomPH
@@ -134,6 +136,9 @@ function openPage(options){
     options.url = options.url.replace(/http(s)?:\/\/([^\/]*)+/i, host);
     console.log('phantom opening page at:', printurl);
 
+    let date = new Date(moment(new Date()).tz(ZONE).format());
+    options.accessNote = 'Accessed on: ' + date.toLocaleDateString() + ' at ' + date.toLocaleTimeString();
+
     options.page.open( printurl, function(status){
          if (status !== 'success') {
             console.log('Unable to access network', status);
@@ -175,7 +180,7 @@ function evaluatePage(options){
     ;
 
     document.body.style.overflow = 'hidden';
-    
+
     var rect = document.body.getClientRects()[0];
 
     var iframe = document.getElementsByTagName('iframe')[0];
@@ -325,8 +330,9 @@ function evaluatePage(options){
         scaleIframe();
 
         // var accessNote = cw.document.title + ' - accessed on: ' + new Date().toLocaleDateString() + ' at ' + new Date().toLocaleTimeString();
-        var accessNote = 'Accessed on: ' + new Date().toLocaleDateString() + ' at ' + new Date().toLocaleTimeString();
-        $('#title').append('<p class="access-note">'+accessNote+'</p>');
+        // var accessNote = 'Accessed on: ' + new Date().toLocaleDateString() + ' at ' + new Date().toLocaleTimeString();
+        if(options.accessNote)
+            $('#title').append('<p class="access-note">'+options.accessNote+'</p>');
         
         // var footerlabel = document.getElementById('footerlabel');
         // if(footerlabel){
