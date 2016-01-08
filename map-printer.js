@@ -136,8 +136,8 @@ function openPage(options){
     options.url = options.url.replace(/http(s)?:\/\/([^\/]*)+/i, host);
     console.log('phantom opening page at:', printurl);
 
-    let date = new Date(moment(new Date()).tz(ZONE).format());
-    options.accessNote = 'Accessed on: ' + date.toLocaleDateString() + ' at ' + date.toLocaleTimeString();
+    let date = moment(new Date()).tz(ZONE).format();
+    options.accessNote = 'Accessed on: ' + date.format('MM/DD/YYYY') + ' at ' + date.format('h:m A');
 
     options.page.open( printurl, function(status){
          if (status !== 'success') {
