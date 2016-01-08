@@ -136,7 +136,7 @@ function openPage(options){
     options.url = options.url.replace(/http(s)?:\/\/([^\/]*)+/i, host);
     console.log('phantom opening page at:', printurl);
 
-    let date = moment(new Date()).tz(ZONE).format();
+    let date = moment(new Date()).tz(ZONE);
     options.accessNote = 'Accessed on: ' + date.format('MM/DD/YYYY') + ' at ' + date.format('h:m A');
 
     options.page.open( printurl, function(status){
@@ -180,6 +180,12 @@ function evaluatePage(options){
     ;
 
     document.body.style.overflow = 'hidden';
+
+    // // retina - doesn't work like this
+    // document.body.style.webkitTransform = "scale(2)";
+    // document.body.style.webkitTransformOrigin = "0% 0%";
+    // /* fix the body width that overflows out of the viewport */
+    // document.body.style.width = "50%"
 
     var rect = document.body.getClientRects()[0];
 
