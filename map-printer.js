@@ -131,8 +131,10 @@ function openPage(options){
 
     options.bodyheight = options.height;
     options.bodywidth = options.width;
-    var host = `http://localhost:${(process.env.PORT || 1337)}`;
+    var protocol = '^https:'.test(options.url) ? 'https' : 'http';
+    var host = `${protocol}://localhost:${(process.env.PORT || 1337)}`;
     var printurl = `${host}/print/iframe`;
+    options.url = options.url.replace(/http(s)?:\/\/([^\/]*)+/i, host);
     options.url = options.url.replace(/http(s)?:\/\/([^\/]*)+/i, host);
     console.log('phantom opening page at:', printurl);
 
