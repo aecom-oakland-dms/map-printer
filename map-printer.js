@@ -131,7 +131,7 @@ function openPage(options){
 
     options.bodyheight = options.height;
     options.bodywidth = options.width;
-    var protocol = '^https:'.test(options.url) ? 'https' : 'http';
+    var protocol = /^https:/.test(options.url) ? 'https' : 'http';
     var host = `${protocol}://localhost:${(process.env.PORT || 1337)}`;
     var printurl = `${host}/print/iframe`;
     options.url = options.url.replace(/http(s)?:\/\/([^\/]*)+/i, host);
