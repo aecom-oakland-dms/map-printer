@@ -426,7 +426,7 @@ function onPhantomError(msg, trace) {
   if (trace && trace.length) {
     msgStack.push('TRACE:');
     trace.forEach(function(t) {
-      msgStack.push(` ->  ${t.file || t.sourceURL}: ${t.line} ${t['function'] && 'in function' + t['function']}`));
+      msgStack.push(` ->  ${t.file || t.sourceURL}: ${t.line} ${t['function'] && 'in function' + t['function']}`);
     });
   }
   console.error(msgStack.join('\n'));
