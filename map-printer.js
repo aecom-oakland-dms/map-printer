@@ -440,9 +440,12 @@ function loadPhantom(cb){
             cb()
     }
     , {
-        // for ssl/https
-        'ssl-protocol': 'any'
-        , 'ignore-ssl-errors': 'yes'
+        parameters : {
+            // phantom environment parameters
+            // for ssl/https
+            'ssl-protocol': 'any'
+            , 'ignore-ssl-errors': 'yes'
+        }
         // for Windows -->
         , dnodeOpts: {
           weak: false
