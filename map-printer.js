@@ -138,7 +138,7 @@ function openPage(options){
         ? `${protocol}://localhost:${(process.env.PORT || 1337)}`
         // otherwise use the requested domain
         // this will not work for external sites
-        : url.replace(/(^http(s)?:\/\/[^=\/]+(:[0-9]+)?).+/, function(match, $1){ return $1 })
+        : options.url.replace(/(^http(s)?:\/\/[^=\/]+(:[0-9]+)?).+/, function(match, $1){ return $1 })
     ;
     var printurl = `${host}/print/iframe`;
     // var printurl = `${host}/print/iframe`;
