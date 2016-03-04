@@ -132,9 +132,15 @@ function openPage(options){
     options.bodyheight = options.height;
     options.bodywidth = options.width;
     var protocol = /^https:/.test(options.url) ? 'https' : 'http';
-    var host = `${protocol}://localhost:${(process.env.PORT || 1337)}`;
+    var host = protocol == 'http' 
+        // use localhost if http
+        // this will work for some external sites
+        ? `${protocol}://localhost:${(process.env.PORT || 1337)}`;
+        // otherwise use the requested domain
+        // this will not work for external sites
+        : url.replace(/(^http(s)?:\/\/[^=\/]+(:[0-9]+)?).+/, function(match, $1){ return $1 })
     var printurl = `${host}/print/iframe`;
-    options.url = options.url.replace(/http(s)?:\/\/([^\/]*)+/i, host);
+    // var printurl = `${host}/print/iframe`;
     options.url = options.url.replace(/http(s)?:\/\/([^\/]*)+/i, host);
     console.log('phantom opening page at:', printurl);
 
