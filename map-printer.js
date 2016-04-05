@@ -182,6 +182,18 @@ function evaluatePage(options){
     /* run javascript on webpage */
     options = options || {};
 
+    var title;
+    $.ajax({
+      url: options.url,
+      async: true,
+      success: function(data) {
+        var matches = data.match(/<title>(.*?)<\/title>/);
+        title = matches[1] || matches[0];
+        console.log('title is:', title);
+      }   
+    });
+
+
     var size = options.pageSize || {}
     , filetype = options.filetype || ''
     , width = options.bodywidth || size.width || 800
@@ -204,6 +216,7 @@ function evaluatePage(options){
     iframe.height = height ;
     iframe.width = width;
     iframe.src = options.url;
+
 
     function runPhantom(){
         console.log('iframe loaded, now running phantom mods:', arguments)
@@ -360,7 +373,7 @@ function evaluatePage(options){
     }
 
     return {
-        title: 'Perris Dam'
+        title: title || 'Printed Map'
         // title: iframe.contentWindow.document.title || 'Perris Dam'
     }
 }
