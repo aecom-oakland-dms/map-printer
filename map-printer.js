@@ -182,16 +182,16 @@ function evaluatePage(options){
     /* run javascript on webpage */
     options = options || {};
 
-    var title;
-    $.ajax({
-      url: options.url,
-      async: true,
-      success: function(data) {
-        var matches = data.match(/<title>(.*?)<\/title>/);
-        title = matches[1] || matches[0];
-        console.log('title is:', title);
-      }   
-    });
+    // var title;
+    // $.ajax({
+    //   url: options.url,
+    //   async: true,
+    //   success: function(data) {
+    //     var matches = data.match(/<title>(.*?)<\/title>/);
+    //     title = matches[1] || matches[0];
+    //     console.log('title is:', title);
+    //   }   
+    // });
 
 
     var size = options.pageSize || {}
@@ -373,16 +373,16 @@ function evaluatePage(options){
     }
 
     return {
-        title: title || 'Printed Map'
+        // title: title || 'Printed Map'
         // title: iframe.contentWindow.document.title || 'Perris Dam'
     }
 }
 
 function onPageEvaluated(args){
     // console.log('onEvaluated args:', arguments);
-    args = args || { title: 'test-title'};
+    args = args || {}//{ title: 'test-title'};
     
-    let title = args.title
+    let title = args.title || this.title || 'Printed Map'
     , name = createFileName(title, this.url);
     ;
     

@@ -165,7 +165,7 @@ Queue.prototype = {
   , pageorder: {}
 };
 
-module.exports.getMaps = function(req, res){
+module.exports.getMaps = function(req, res, opts){
   let query = req.query || {};
   let view = req.params ? req.params.view || query.view : 'www.google.com';
   let views = view ? [view] : undefined
@@ -174,6 +174,8 @@ module.exports.getMaps = function(req, res){
   , cacheID = Object.keys(allparams).map(key=>key!=='filetype' ? key + '=' + allparams[key] : '').join(' ')
   , filetype = allparams.filetype || '.jpg'
   ;
+
+  opts = opts  || {};
 
   let cached = cachedfiles[cacheID];
   if(cached){
@@ -232,6 +234,12 @@ module.exports.getMaps = function(req, res){
             , quality: req.param('quality') || query.quality
             , combined: req.param('combined')
           }
+
+          // make a copy just in case it gets mutated
+          let copy =JSON.parse(JSON.stringify(opts))
+
+          for(let key in copy)
+            options[key] = copy[key]
 
           concurrent +=1;
           console.log('concurrent renderers:', concurrent, 'now starting view: ', view)
