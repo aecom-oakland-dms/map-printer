@@ -132,14 +132,18 @@ function openPage(options){
     options.bodyheight = options.height;
     options.bodywidth = options.width;
     var protocol = /^https:/.test(options.url) ? 'https' : 'http';
-    var host = protocol == 'http' 
-        // use localhost if http
-        // this will work for some external sites
-        ? `${protocol}://localhost:${(process.env.PORT || 1337)}`
-        // otherwise use the requested domain
-        // this will not work for external sites
-        : options.url.replace(/(^http(s)?:\/\/[^=\/]+(:[0-9]+)?).+/, function(match, $1){ return $1 })
-    ;
+    var port = (typeof sails !== 'undefined' ? sails.config.port : process.env.PORT) || 1337;
+    // var host = protocol == 'http' 
+    //     // use localhost if http
+    //     // this will work for some external sites
+    //     ? `${protocol}://localhost:${port}`
+    //     // otherwise use the requested domain
+    //     // this will not work for external sites
+    //     : options.url.replace(/(^http(s)?:\/\/[^=\/]+(:[0-9]+)?).+/, function(match, $1){ return $1 })
+    // ;
+    
+    var host = options.url.replace(/(^http(s)?:\/\/[^=\/]+(:[0-9]+)?).+/, function(match, $1){ return $1 });
+    
     var printurl = `${host}/print/iframe`;
     // var printurl = `${host}/print/iframe`;
     options.url = options.url.replace(/http(s)?:\/\/([^\/]*)+/i, host);
@@ -270,7 +274,7 @@ function evaluatePage(options){
                     triggerPrint('waited for ' + configs);
                 })
             }else
-            triggerPrint("didn't wait for any layerconfigs");
+                triggerPrint("didn't wait for any layerconfigs");
         }
 
         function triggerWhenReady(msg){
@@ -307,7 +311,10 @@ function evaluatePage(options){
                         triggerWhenReady('try again after forcing onhashset');
                         // trigger('from bounds:fit timeout')
                     }, 5000);
-                    app.map.once('bounds:fit', trigger);
+                    if(!app.map._boundsFitTo)
+                        app.map.once('bounds:fit', trigger);
+                    else
+                        trigget('map._boundsFitTo:' + app.map._boundsFitTo);
                 }else
                     setupPrintTrigger('app.map.hash.initialSetup is truthy')
             }else{
@@ -487,6 +494,7 @@ function makeMap(url, options, callback){
             let timer;
 
             function checkqueue(){
+                // process.stdout.write(`${requests.list.length} requests remaining in phantomjs page.`)
                 process.stdout.write(`${requests.list.length} requests remaining in phantomjs page. \r`)
                 timer && clearTimeout(timer);
                 timer = setTimeout(()=>{
@@ -513,7 +521,8 @@ function makeMap(url, options, callback){
                     if(requests.list.indexOf(url)!==-1)
                         requests.list.splice(requests.list.indexOf(url), 1);
                     if(requests.list.length<3)
-                        process.stdout.write(`requests remaining: ${requests.list.join(' , ')} \r`)
+                        process.stdout.write(`requests remaining: ${requests.list.join(' , ')}`)
+                        // process.stdout.write(`requests remaining: ${requests.list.join(' , ')} \r`)
                     checkqueue();
                 })
         });
