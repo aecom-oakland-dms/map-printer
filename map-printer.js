@@ -249,14 +249,28 @@ function evaluatePage(options){
     , timer
     ;
 
+    function sendPrintMessage(msg){
+      console.log('*****', msg, '*****')
+      // wait half a second to allow the prepareForPrint function to run to completion
+      // setTimeout(function(){
+      console.log(printmessage);
+      // }, 500)
+    }
+
     function triggerPrint(msg){
       clearTimeout(timer);
-      $(cw.window).trigger('print:start');
-      console.log('+++++', msg, '+++++')
-      // wait half a second to allow the prepareForPrint function to run to completion
-      setTimeout(function(){
-        console.log(printmessage);
-      }, 500)
+      var timeout = setTimeout(function(){
+        $(cw.window).off('print:ready');
+        sendPrintMessage('print message sent but not `print:ready`');
+      }, 15000)
+
+      $(cw.window)
+        .one('print:ready', function(){
+          clearTimeout(timeout);
+          console.log('+++++', msg, '+++++');
+          sendPrintMessage('print:ready');
+        })
+        .trigger('print:start')
     }
     
     var triggersetup;
@@ -403,9 +417,9 @@ function onPageEvaluated(args){
 } 
 
 function createRenders(page, options, callback){
-  let promises = ['.pdf', '.jpg', '.png'].map(type=>{
+  let promises = ['.png', '.jpg', '.pdf'].map(type=>{
     return new Promise((resolve, reject)=>{
-      console.log('creating temp file with prefix:', options.outfile, 'postfix:', options.type);
+      console.log('creating temp file with prefix:', options.outfile, 'filteype:', type);
       
       tmp.file({ prefix: options.outfile, postfix: type, keep: true }, function(err, filepath, fd, cleanupCallback) {
         if (err) return console.error('error creating temp file:', err)//throw err;
