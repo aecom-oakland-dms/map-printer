@@ -135,6 +135,12 @@ function streamFile(filepath, sendname, res){
   res.setHeader('Content-disposition', 'attachment; filename=' + sendname );
   res.setHeader('Content-type', mimetype);
 
+  // can remove below since it's now handled in the noCache middleware in sails.config.http.middleware
+  // prevent caching in the browser
+  // res.setHeader('Expires', '-1');
+  // res.setHeader('Pragma', 'no-cache');
+  // res.setHeader('Cache-Control', 'Cache-Control', 'private, no-cache, no-store, must-revalidate');
+
   let filestream = fs.createReadStream( path.resolve(filepath) );
   try{
     filestream
