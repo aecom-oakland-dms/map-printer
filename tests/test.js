@@ -1,5 +1,7 @@
 'use strict';
-let mapmaker = require(process.cwd()+ '/' + 'make-map')
+// const path = require(path);
+// let mapmaker = require(path.join(__dirname, 'make-map'))
+let mapmaker = require('../make-map'))
 , timermsg = 'test map-printer'
 , req = {
   param: function(key){return this.params[key]},

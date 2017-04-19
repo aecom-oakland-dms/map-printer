@@ -319,7 +319,7 @@ function evaluatePage(options){
           if(!app.map._boundsFitTo)
             app.map.once('bounds:fit', trigger);
           else
-            trigget('map._boundsFitTo:' + app.map._boundsFitTo);
+            trigger('map._boundsFitTo:' + app.map._boundsFitTo);
         }else
           setupPrintTrigger('app.map.hash.initialSetup is truthy')
       }else{
@@ -531,7 +531,7 @@ function makeMap(url, options, callback){
           checkqueue();
         })
     });
-
+    
     options.resourceQueue = resourceQueue;
 
     /* the page actions */
