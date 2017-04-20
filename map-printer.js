@@ -182,7 +182,6 @@ function onPageOpen(options){
 /// or the options object passed in
 /// it is run in the "browser" context, not the node context
 function evaluatePage(options){ 
-  // 'use strict';
   /* run javascript on webpage */
   options = options || {};
 
@@ -207,8 +206,38 @@ function evaluatePage(options){
   // height needs to be a little less, so we don't get 2 page pdf
   iframe.height = height ;
   iframe.width = width;
-  iframe.src = options.url;
 
+  // get the page html and write it to the iframe
+  // after modification, if any
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+       // Typical action to be performed when the document is ready:
+      var html = xhttp.responseText
+      , doc = iframe.contentWindow.document
+      , injectVars = [];
+      ;
+
+      if(options.auth)
+        injectVars.push('window.authConfig=' + (typeof options.auth=='object' ? JSON.stringify(options.auth) : options.auth ) )
+      if(options.mapload_params)
+        injectVars.push('window.mapload_params="' + (typeof options.mapload_params=='object' ? JSON.stringify(options.mapload_params) : options.mapload_params ) + '"') 
+
+      if(injectVars.length>0){
+        var script = '<script>'+injectVars.join(';')+'</script>';
+        html = html.replace(/(\<head\>)(.+)/, '$1' + script + '$2');
+        console.log('html to insert into iframe: ' + html);
+        console.log('injected script:' + script);
+      }
+
+      doc.open('text/htmlreplace');
+      doc.write(html)
+      doc.close()
+    }
+  };
+  xhttp.open("GET", options.url, true);
+  xhttp.send();
+  // iframe.src = options.url;
 
   function runPhantom(){
     console.log('iframe loaded, now running phantom mods:', arguments)
@@ -334,9 +363,9 @@ function evaluatePage(options){
       , scale = heightscale < 1 
         ? heightscale < widthscale
          ? heightscale : widthscale
-          : widthscale < 1
-           ? widthscale
-            : undefined;
+        : widthscale < 1
+          ? widthscale
+          : undefined;
 
       console.log('scale difference is:', scale);
       console.log('heightscale is:', heightscale);
@@ -531,7 +560,7 @@ function makeMap(url, options, callback){
           checkqueue();
         })
     });
-    
+
     options.resourceQueue = resourceQueue;
 
     /* the page actions */
