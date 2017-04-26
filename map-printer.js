@@ -217,7 +217,7 @@ function evaluatePage(options){
     injectVars.push('window.mapload_params="' + (typeof options.mapload_params=='object' ? JSON.stringify(options.mapload_params) : options.mapload_params ) + '"') 
   
   var script = '<script>'+injectVars.join(';')+'</script>';
-  
+
   var xhttp = new XMLHttpRequest();
   xhttp.onreadystatechange = function() {
     if (this.readyState == 4 && this.status == 200) {
@@ -499,6 +499,8 @@ function loadPhantom(cb){
       // for ssl/https
       'ssl-protocol': 'any'
       , 'ignore-ssl-errors': 'yes'
+      // https://github.com/amir20/phantomjs-node/issues/345#issuecomment-170233461
+      , 'web-security': 'no'
     }
     // for Windows -->
     , dnodeOpts: {
